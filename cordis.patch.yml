@@ -1,3 +1,3 @@
 - insert:
-    - id: reply-cost
-      name: '@local/reply-cost'
+    - id: dsh-costline
+      name: 'dsh-costline'

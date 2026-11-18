@@ -1,0 +1,22 @@
+const assert = require('node:assert/strict')
+const { readFileSync } = require('node:fs')
+const { test } = require('node:test')
+const { runInNewContext } = require('node:vm')
+
+const manifest = require('../package.json')
+const loadBundle = file => {
+  let bundle
+  runInNewContext(readFileSync(require.resolve('../' + file), 'utf8'), {
+    window: { __ModuleLoader__: { load(registration) { bundle = registration } } },
+  })
+  return bundle
+}
+
+test('DSH loads the web entry and dependency-free pricing chunk under the same package ID', () => {
+  const entry = loadBundle('client.js')
+  const chunk = loadBundle('client.pricing.js')
+  assert.equal(entry.id, manifest.name)
+  assert.equal(chunk.id, manifest.name)
+  assert.equal(chunk.chunk, 'client.pricing.js')
+  assert.equal(chunk.factory().formatCost(0.6923), '≈¥0.692')
+})

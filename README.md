@@ -1,4 +1,4 @@
-# Reply token cost (回复用量与费用)
+# DSH Costline (回复用量与费用)
 
 Shows the whole task's token usage and estimated RMB cost in the completed
 Turn's header, right after the elapsed time:
@@ -25,10 +25,8 @@ tokens of the final reply text:
 - edits, reads, searches, and commands: the tool output is sent back in the
   following request, so its tokens are included.
 
-Real example from this session: the Turn that built this plugin ran 80 Steps
-with 113 tool calls, recorded 10,494,193 tokens (only 1,276 characters of final
-reply text), and estimates to about ¥0.692. A line computed from the final
-"任务已完成" text alone would have shown a few hundred tokens instead.
+The example above was recorded in the original reply-cost plugin's README.
+That turn reported 10,494,193 tokens over 80 steps and 113 tool calls.
 
 Each user input starts a Turn; a running Turn stays one task through all of
 its Steps and tool calls. A Turn's figure does not include separately billed
@@ -52,8 +50,8 @@ alternative is the `conversation.chat.turnTail` seat below the reply.
 
 ## Pricing
 
-Prices are the official DeepSeek API rates in `PRICES` (CNY per 1,000,000
-tokens, as of 2026-10):
+The built-in CNY amounts come from the [DeepSeek API price table](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/).
+Rates are per million tokens.
 
 | Model | Window | Cache hit | Cache miss | Output |
 | --- | --- | --- | --- | --- |
@@ -62,16 +60,35 @@ tokens, as of 2026-10):
 | `deepseek-v4-pro` | peak | ¥0.30 | ¥9 | ¥27 |
 | `deepseek-v4-pro` | off-peak | ¥0.15 | ¥4.5 | ¥13.5 |
 
-Peak is Monday-Friday 09:00-12:00 and 14:00-18:00 Asia/Shanghai; every other
-time is off-peak, judged from the Turn's end time. Statutory Chinese holidays
-are treated as peak. The value is a local estimate, never a bill: no cost is
-shown when the Turn used an unpriced or non-official model, used models with
-different rates, or lacks the cached/uncached split; the header then says
-`费用未知` and the hover text explains why.
+Costline uses the turn's end time in Asia/Shanghai. Workday peak windows are
+09:00–12:00 and 14:00–18:00. The plugin's estimate treats announced Chinese
+holidays as peak all day and applies workday hours to weekend make-up days.
+DeepSeek's published billing policy treats weekends and public holidays as
+off-peak. Estimates can therefore differ from your invoice. The bundled
+calendar covers [2025](https://www.forestry.gov.cn/c/www/szxx/594663.jhtml),
+[2026](https://big5.www.gov.cn/gate/big5/www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm),
+and [2027](https://www.dxh.gov.cn/ZWGK/zc_zwgk/ZFWJ/TZGG/202611/t20261106_2875104.shtml).
+Outside those years Costline uses the weekday schedule.
+
+An unsupported route, a mix of models or rates, or insufficient cache detail
+produces “cost unknown”. Hover over the cost line for the reason.
 
 ## Customizing
 
-Edit `PRICES` and `MODEL_LABELS` in `client.js`. The table is keyed by the
-route model id; display-name aliases such as `DeepSeek-V4.1-Flash` are matched
-too. Cache writes, when a provider reports them, are priced at the cache-miss
-rate; DeepSeek itself does not bill a separate cache-write price.
+Open **Plugins → Built-in plugins → DSH Costline rates**. Add an official
+DeepSeek provider/model pair, enter prices for cache hits, cache misses, cache
+writes, or output, then save. Empty fields inherit their CNY defaults. The
+default CNY cache-write value equals the built-in cache-miss value.
+
+To use another currency, enter the currency code and all four prices in both
+periods. Costline displays those amounts without exchange-rate conversion.
+Saving recalculates visible completed turns. **Restore defaults** removes the
+plugin's saved overrides from the active profile.
+
+## What makes Costline different
+
+Costline puts provider-reported whole-turn usage and a local cost estimate next
+to the elapsed time. Its focus is official DeepSeek routes and the cost of the
+task in front of you. Pricing and the calendar ship with the plugin. The
+settings page uses DSH's built-in profile storage. Costline makes no external
+network requests and does not upload conversation data.

@@ -1,28 +1,10 @@
 window.__ModuleLoader__.load({
-  id: '@local/reply-cost',
+  id: 'dsh-costline',
   factory(require) {
     const React = require('react')
     const h = React.createElement
-    const NS = 'reply-cost'
-
-    // Official DeepSeek API prices, CNY per 1,000,000 tokens (as of 2026-10).
-    // Peak: Monday-Friday 09:00-12:00 and 14:00-18:00 Asia/Shanghai; all other
-    // time is off-peak. Statutory Chinese holidays are not special-cased here.
-    // Edit this table to match the rates you are actually billed.
-    const PRICES = {
-      'deepseek-flash': {
-        peak: { cacheHit: 0.04, cacheMiss: 2, output: 8 },
-        offPeak: { cacheHit: 0.02, cacheMiss: 1, output: 4 },
-      },
-      'deepseek-v4-pro': {
-        peak: { cacheHit: 0.3, cacheMiss: 9, output: 27 },
-        offPeak: { cacheHit: 0.15, cacheMiss: 4.5, output: 13.5 },
-      },
-    }
-    const MODEL_LABELS = {
-      'deepseek-flash': 'DeepSeek-V4.1-Flash',
-      'deepseek-v4-pro': 'DeepSeek-V4-Pro',
-    }
+    const NS = 'dsh-costline'
+    const EMPTY_OVERRIDES = Object.freeze([])
     // Header copy ships with Chat; these fallbacks cover a missing Chat locale
     // namespace instead of blanking the control.
     const CHAT_FALLBACK = {
@@ -46,15 +28,38 @@ window.__ModuleLoader__.load({
       'detail.cacheWrite': '缓存写入 {tokens}',
       'detail.output': '输出 {tokens}',
       'detail.outputReasoning': '输出 {tokens}（其中推理 {reasoning}）',
-      'detail.rate': '{period}价格（2026-10 官方，元/百万 tok）：缓存命中 ¥{hit}，缓存未命中 ¥{miss}，输出 ¥{output}',
-      'detail.noCost.model': '费用未知：模型未匹配到价格表，可在 client.js 的 PRICES 中添加',
-      'detail.noCost.mixed': '费用未知：本轮使用了多个价格不同的模型',
-      'detail.noCost.cache': '费用未知：本轮用量缺少缓存命中明细',
-      'detail.noCost.usage': '费用未知：本轮用量缺少未缓存输入明细',
+      'detail.rate': '{period} · {source}（{currency}/百万 tok）：缓存命中 {hit}，缓存未命中 {miss}，缓存写入 {write}，输出 {output}',
+      'detail.default': '内置费率',
+      'detail.custom': '自定义费率',
+      'detail.noCost.model': '费用未知：未匹配到受支持的 DeepSeek 官方路由',
+      'detail.noCost.mixed': '费用未知：本轮混用了不同模型、费率或币种',
+      'detail.noCost.cache': '费用未知：本轮用量缺少缓存明细',
+      'detail.noCost.usage': '费用未知：本轮用量不完整或各项合计不一致',
       'detail.noCost.time': '费用未知：缺少本轮时间',
       'detail.note': '按轮次结束时刻判断高峰/空闲，法定节假日按高峰计；本地估算，仅供参考',
       'period.peak': '高峰时段',
       'period.offPeak': '空闲时段',
+      'settings.title': 'DSH Costline 费率',
+      'settings.summary': '按提供方和模型配置每百万 token 的单价。',
+      'settings.help': '空白字段沿用内置 CNY 费率。切换币种时，请填写该币种在两个时段的全部单价。保存后也会重算已完成的轮次。',
+      'settings.provider': '提供方',
+      'settings.model': '模型',
+      'settings.currency': '币种代码',
+      'settings.rate.cacheHit': '缓存命中',
+      'settings.rate.cacheMiss': '缓存未命中',
+      'settings.rate.cacheWrite': '缓存写入',
+      'settings.rate.output': '输出',
+      'settings.add': '添加费率',
+      'settings.rule': '费率 {index}',
+      'settings.remove': '移除费率 {index}',
+      'settings.save': '保存费率',
+      'settings.reset': '恢复默认',
+      'settings.saved': '费率已保存。',
+      'settings.resetDone': '已恢复内置费率。',
+      'settings.failed': '未能保存。请确认设置可写，或重新打开页面后再试。',
+      'settings.conflict': '费率已在其他位置更改。重新打开页面可载入最新值。',
+      'settings.invalid': '费率无效。检查编号、时段和字段：{message}',
+      'settings.disabled': '当前 profile 的费率设置不可写。',
     }
     const en = {
       'line': 'This task used {tokens} tok · {cost}',
@@ -67,24 +72,41 @@ window.__ModuleLoader__.load({
       'detail.cacheWrite': 'Cache write {tokens}',
       'detail.output': 'Output {tokens}',
       'detail.outputReasoning': 'Output {tokens} ({reasoning} reasoning)',
-      'detail.rate': '{period} rate (2026-10 official, CNY per 1M tok): cache hit ¥{hit}, cache miss ¥{miss}, output ¥{output}',
-      'detail.noCost.model': 'Cost unknown: the model is not matched to PRICES; add it in client.js',
-      'detail.noCost.mixed': 'Cost unknown: this turn used models with different rates',
-      'detail.noCost.cache': 'Cost unknown: this turn lacks cache-hit detail',
-      'detail.noCost.usage': 'Cost unknown: this turn lacks uncached-input detail',
+      'detail.rate': '{period} · {source} ({currency} per 1M tok): cache hit {hit}, cache miss {miss}, cache write {write}, output {output}',
+      'detail.default': 'Built-in rates',
+      'detail.custom': 'Custom rates',
+      'detail.noCost.model': 'Cost unknown: no supported official DeepSeek route matched',
+      'detail.noCost.mixed': 'Cost unknown: this turn mixed models, rates, or currencies',
+      'detail.noCost.cache': 'Cost unknown: cache breakdown is incomplete',
+      'detail.noCost.usage': 'Cost unknown: usage is incomplete or the token counts do not add up',
       'detail.noCost.time': 'Cost unknown: the turn time is missing',
       'detail.note': 'Peak/off-peak is judged from the turn end time, holidays count as peak; local estimate only',
       'period.peak': 'Peak-hour',
       'period.offPeak': 'Off-peak',
+      'settings.title': 'DSH Costline rates',
+      'settings.summary': 'Set prices per million tokens by provider and model.',
+      'settings.help': 'Leave an amount blank to use the built-in CNY rate. If you change the currency, enter all rates in that currency for both periods. Saving also recalculates completed turns.',
+      'settings.provider': 'Provider',
+      'settings.model': 'Model',
+      'settings.currency': 'Currency code',
+      'settings.rate.cacheHit': 'Cache hit',
+      'settings.rate.cacheMiss': 'Cache miss',
+      'settings.rate.cacheWrite': 'Cache write',
+      'settings.rate.output': 'Output',
+      'settings.add': 'Add rate',
+      'settings.rule': 'Rate {index}',
+      'settings.remove': 'Remove rate {index}',
+      'settings.save': 'Save rates',
+      'settings.reset': 'Restore defaults',
+      'settings.saved': 'Rates saved.',
+      'settings.resetDone': 'Built-in rates restored.',
+      'settings.failed': 'Could not save. Check that settings are writable or reopen the page and try again.',
+      'settings.conflict': 'Rates changed elsewhere. Reopen this page to load the latest values.',
+      'settings.invalid': 'Invalid rate. Check the rule, period, and field shown here: {message}',
+      'settings.disabled': 'Rates are read-only for this profile.',
     }
 
     const NUMBER = new Intl.NumberFormat('en-US')
-    const CLOCK = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Asia/Shanghai',
-      weekday: 'short',
-      hour: '2-digit',
-      hourCycle: 'h23',
-    })
     const CSS = `
 .dshrc-root {
   box-sizing: border-box;
@@ -156,6 +178,39 @@ window.__ModuleLoader__.load({
 @media (prefers-reduced-motion: reduce) {
   .dshrc-root, .dshrc-chevron { transition: none; }
 }
+.dshrc-settings { display: grid; gap: 12px; min-width: 0; padding: 12px 0; }
+.dshrc-settings p { margin: 0; overflow-wrap: anywhere; }
+.dshrc-settings fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 8px 12px 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+}
+.dshrc-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 126px), 1fr));
+  gap: 8px;
+  margin-block: 6px;
+}
+.dshrc-settings-grid label { display: grid; gap: 4px; min-width: 0; }
+.dshrc-settings-grid :is(input, select), .dshrc-settings button {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 32px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.dshrc-settings :is(input, select, button):focus-visible {
+  outline: 2px solid var(--dsw-alias-link);
+  outline-offset: 2px;
+}
+.dshrc-settings button:disabled { opacity: 0.55; }
+.dshrc-settings-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 `
 
     function interpolate(dict, key, params) {
@@ -176,128 +231,21 @@ window.__ModuleLoader__.load({
       return text === key && CHAT_FALLBACK[key] !== undefined ? CHAT_FALLBACK[key] : text
     }
 
-    /** Peak-hour billing window in Beijing time. */
-    function isPeak(ms) {
-      const parts = CLOCK.formatToParts(new Date(ms))
-      const weekday = parts.find(part => part.type === 'weekday')
-      const hour = Number(parts.find(part => part.type === 'hour').value)
-      if (weekday === undefined || !Number.isFinite(hour)) return false
-      if (weekday.value === 'Sat' || weekday.value === 'Sun') return false
-      return (hour >= 9 && hour < 12) || (hour >= 14 && hour < 18)
-    }
-
     function countOrZero(value) {
       return Number.isSafeInteger(value) && value >= 0 ? value : 0
     }
 
-    function formatCost(value) {
-      if (!Number.isFinite(value)) return '≈¥—'
-      const decimals = value >= 0.01 ? 3 : value >= 0.001 ? 4 : 6
-      return `≈¥${value.toFixed(decimals)}`
-    }
-
-    /** Map a route's model string (id or display name) onto a PRICES key. */
-    function priceKey(model) {
-      if (typeof model !== 'string') return undefined
-      if (PRICES[model] !== undefined) return model
-      const id = model.toLowerCase()
-      if (!id.includes('deepseek')) return undefined
-      if (id.includes('pro')) return 'deepseek-v4-pro'
-      if (id.includes('flash')) return 'deepseek-flash'
-      return undefined
-    }
-
-    function modelLabel(model) {
-      if (MODEL_LABELS[model] !== undefined) return MODEL_LABELS[model]
-      const key = priceKey(model)
-      return key === undefined ? model : MODEL_LABELS[key]
-    }
-
-    /** Unique provider/model routes that contributed billed attempts. */
-    function routeRows(usage) {
-      const rows = []
-      for (const route of usage.routes === undefined ? [] : usage.routes) {
-        if (route === null || typeof route !== 'object' || typeof route.model !== 'string' || route.model === '') continue
-        const provider = typeof route.provider === 'string' ? route.provider : ''
-        if (rows.some(row => row.provider === provider && row.model === route.model)) continue
-        rows.push({ provider, model: route.model })
-      }
-      return rows
-    }
-
-    function routeText(t, rows) {
+    function routeText(t, rows, modelLabel) {
       if (rows.length === 0) return t('model.unknown')
-      return rows.map(row => (
-        row.provider === '' ? modelLabel(row.model) : `${row.provider} / ${modelLabel(row.model)}`
-      )).join(', ')
+      const labels = rows.filter(row => typeof row.model === 'string' && row.model !== '').map(row => (
+        typeof row.provider === 'string' && row.provider !== ''
+          ? `${row.provider} / ${modelLabel(row.model)}` : modelLabel(row.model)
+      ))
+      return [...new Set(labels)].join(', ') || t('model.unknown')
     }
 
-    /**
-     * Exact token buckets and the estimated CNY cost for one completed Turn.
-     * The cost stays unavailable unless every billed attempt shares one priced
-     * model and the prompt's cached/uncached split is known.
-     */
-    function estimate(usage, at) {
-      const period = isPeak(at) ? 'peak' : 'offPeak'
-      const rows = routeRows(usage)
-      const keys = rows.map(row => priceKey(row.model))
-      const knownKeys = new Set(keys.filter(key => key !== undefined))
-      // Only official DeepSeek routes are priced: a gateway or another provider
-      // may bill the same token counts differently.
-      const official = rows.every(row => row.provider === '' || /deepseek/i.test(row.provider))
-      let priced
-      let reason
-      if (rows.length === 0) reason = 'model'
-      else if (!official || keys.some(key => key === undefined)) reason = 'model'
-      else if (knownKeys.size > 1) reason = 'mixed'
-      else priced = keys[0]
-      const prompt = Math.max(0, usage.totalTokens - usage.outputTokens)
-      const uncached = Number.isSafeInteger(usage.uncachedInputTokens) && usage.uncachedInputTokens >= 0
-        ? usage.uncachedInputTokens
-        : undefined
-      const cacheWrite = countOrZero(usage.cacheWriteTokens)
-      const cacheReadKnown = Number.isSafeInteger(usage.cacheReadTokens) && usage.cacheReadTokens >= 0
-      const breakdown = {
-        period,
-        rows,
-        priced,
-        price: priced === undefined ? undefined : PRICES[priced][period],
-        cost: null,
-        reason,
-        cacheRead: cacheReadKnown ? usage.cacheReadTokens : undefined,
-        cacheWrite,
-        uncached,
-        miss: undefined,
-      }
-      if (priced === undefined) return breakdown
-      if (uncached === undefined) {
-        breakdown.reason = 'usage'
-        return breakdown
-      }
-      let residual = prompt - uncached - cacheWrite
-      if (cacheReadKnown) residual -= usage.cacheReadTokens
-      // A negative residual means the buckets disagree; never invent a credit.
-      if (residual < 0) residual = 0
-      if (!cacheReadKnown) {
-        // Without cache-hit detail, price only when the prompt holds no
-        // unreported cache activity at all; otherwise the cost is unknown.
-        if (residual !== 0) {
-          breakdown.reason = 'cache'
-          return breakdown
-        }
-        breakdown.cacheRead = 0
-      }
-      breakdown.miss = uncached + cacheWrite + residual
-      breakdown.cost = (
-        breakdown.cacheRead * breakdown.price.cacheHit
-        + breakdown.miss * breakdown.price.cacheMiss
-        + usage.outputTokens * breakdown.price.output
-      ) / 1_000_000
-      return breakdown
-    }
-
-    function detailText(t, usage, breakdown) {
-      const lines = [t('detail.model', { models: routeText(t, breakdown.rows) }), t('detail.scope')]
+    function detailText(t, usage, breakdown, modelLabel) {
+      const lines = [t('detail.model', { models: routeText(t, breakdown.rows, modelLabel) }), t('detail.scope')]
       if (breakdown.uncached !== undefined) {
         lines.push(t('detail.input', { tokens: NUMBER.format(breakdown.uncached) }))
       }
@@ -316,8 +264,11 @@ window.__ModuleLoader__.load({
       if (breakdown.cost !== null) {
         lines.push(t('detail.rate', {
           period: t(`period.${breakdown.period}`),
+          source: t(breakdown.custom ? 'detail.custom' : 'detail.default'),
+          currency: breakdown.currency,
           hit: breakdown.price.cacheHit,
           miss: breakdown.price.cacheMiss,
+          write: breakdown.price.cacheWrite,
           output: breakdown.price.output,
         }))
       } else if (breakdown.reason !== undefined) {
@@ -380,16 +331,169 @@ window.__ModuleLoader__.load({
         }))
     }
 
+    function toDraft(overrides) {
+      return overrides.map((rule, id) => ({ ...rule, id }))
+    }
+
+    function parseDraft(rows, pricing) {
+      const number = (value) => {
+        if (typeof value === 'number') return value
+        const text = value.trim()
+        return /^(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(text) ? Number(text) : NaN
+      }
+      return pricing.validateOverrides(rows.map(({ id, currency, ...rule }) => {
+        if (currency?.trim()) rule.currency = currency
+        for (const period of pricing.periods) {
+          rule[period] = Object.fromEntries(Object.entries(rule[period] ?? {})
+            .filter(([, value]) => typeof value !== 'string' || value.trim() !== '')
+            .map(([field, value]) => [field, number(value)]))
+        }
+        return rule
+      }))
+    }
+
+    function pricingSource(mirror) {
+      // The Host validates with a closure-backed transform. The rc.3 generic
+      // form cannot rehydrate that callback in the browser. Read the already
+      // validated value from the shared mirror, and use the form to write it.
+      let previous
+      let snapshot
+      return {
+        subscribe: listener => mirror.subscribe(listener),
+        getSnapshot() {
+          const current = mirror.getSnapshot()
+          if (current !== previous) {
+            previous = current
+            const entry = current.view?.namespaces.find(candidate => candidate.ns === NS)
+            snapshot = {
+              status: entry !== undefined ? 'ready' : (current.view === undefined ? 'loading' : 'unavailable'),
+              value: entry?.value,
+              user: entry?.user,
+              revision: entry?.revision,
+              writable: entry !== undefined && current.view.writable,
+            }
+          }
+          return snapshot
+        },
+      }
+    }
+
+    function RateFields({ row, index, pricing, t, edit, remove, locked }) {
+      const input = (label, attrs) => h('label', { key: attrs.name }, label, h('input', attrs))
+      const select = (name, values, label, display = value => value) => h('label', { key: name }, label,
+        h('select', { name, value: row[name], onChange: event => edit({ [name]: event.target.value }) },
+          values.map(value => h('option', { key: value, value }, display(value)))))
+      return h('fieldset', { disabled: locked, 'data-costline-rate': '' },
+        h('legend', null, t('settings.rule', { index })),
+        h('div', { className: 'dshrc-settings-grid' },
+          select('provider', pricing.providers, t('settings.provider')),
+          select('model', Object.keys(pricing.defaults), t('settings.model'), pricing.modelLabel),
+          input(t('settings.currency'), {
+            name: 'currency', value: row.currency ?? '', placeholder: 'CNY', maxLength: 3,
+            onChange: event => edit({ currency: event.target.value }),
+          })),
+        pricing.periods.map(period => h('fieldset', { key: period },
+          h('legend', null, t('period.' + period)),
+          h('div', { className: 'dshrc-settings-grid' }, pricing.fields.map(field => input(
+            t('settings.rate.' + field), {
+              name: period + '.' + field,
+              inputMode: 'decimal',
+              value: row[period]?.[field] ?? '',
+              placeholder: row.currency && row.currency.toUpperCase() !== 'CNY'
+                ? undefined : pricing.defaults[row.model]?.[period][field]?.toString(),
+              onChange: event => edit({ [period]: { ...row[period], [field]: event.target.value } }),
+            }))))),
+        h('button', { type: 'button', onClick: remove }, t('settings.remove', { index })))
+    }
+
+    function PricingSettings({ t, form, source, pricing }) {
+      const snapshot = React.useSyncExternalStore(source.subscribe, source.getSnapshot)
+      const [draft, setDraft] = React.useState(null)
+      const [notice, setNotice] = React.useState(null)
+      const [saving, setSaving] = React.useState(false)
+      const pending = React.useRef(false)
+      const accepted = snapshot.value?.overrides ?? EMPTY_OVERRIDES
+      const rows = draft?.rows ?? toDraft(accepted)
+      const conflicted = draft !== null && draft.revision !== snapshot.revision
+      const locked = !snapshot.writable || snapshot.revision === undefined || saving
+
+      function edit(update) {
+        setDraft(current => ({
+          rows: update(current?.rows ?? toDraft(accepted)),
+          revision: current === null ? snapshot.revision : current.revision,
+        }))
+        setNotice(null)
+      }
+
+      function add() {
+        const models = Object.keys(pricing.defaults)
+        const pair = pricing.providers.flatMap(provider => models.map(model => ({ provider, model })))
+          .find(({ provider, model }) => !rows.some(row => row.provider === provider && row.model === model))
+        if (pair === undefined) return
+        edit(current => [...current, { ...pair, id: Math.max(-1, ...current.map(row => row.id)) + 1 }])
+      }
+
+      async function submit(reset) {
+        if (locked || pending.current || (!reset && (draft === null || conflicted))) return
+        let op = { op: 'unset', path: ['overrides'] }
+        if (!reset) {
+          try {
+            const overrides = parseDraft(rows, pricing)
+            if (overrides.length > 0) op = { op: 'set', path: ['overrides'], value: overrides }
+          } catch (error) {
+            setNotice({ key: 'settings.invalid', params: { message: error.message }, error: true })
+            return
+          }
+        }
+        pending.current = true
+        setSaving(true)
+        setNotice(null)
+        try {
+          const saved = reset && !Object.hasOwn(snapshot.user ?? {}, 'overrides')
+            ? true : await form.mutate([op], reset ? snapshot.revision : draft.revision)
+          if (saved) setDraft(null)
+          setNotice({
+            key: saved ? (reset ? 'settings.resetDone' : 'settings.saved') : 'settings.failed',
+            error: !saved,
+          })
+        } catch {
+          setNotice({ key: 'settings.failed', error: true })
+        } finally {
+          pending.current = false
+          setSaving(false)
+        }
+      }
+
+      return h('form', {
+        className: 'dshrc-settings', noValidate: true, 'aria-busy': saving,
+        'data-costline-settings': '', onSubmit: event => { event.preventDefault(); void submit(false) },
+      },
+      h('p', null, t('settings.help')),
+      rows.map((row, position) => h(RateFields, {
+        key: row.id, row, index: position + 1, pricing, t, locked,
+        edit: changes => edit(current => current.map(item => item.id === row.id ? { ...item, ...changes } : item)),
+        remove: () => edit(current => current.filter(item => item.id !== row.id)),
+      })),
+      h('div', { className: 'dshrc-settings-actions' },
+        h('button', { type: 'button', disabled: locked || rows.length >= pricing.providers.length * Object.keys(pricing.defaults).length, onClick: add }, t('settings.add')),
+        h('button', { type: 'submit', disabled: locked || draft === null || conflicted }, t('settings.save')),
+        h('button', { type: 'button', disabled: locked, onClick: () => { void submit(true) } }, t('settings.reset'))),
+      conflicted && h('p', { role: 'alert' }, t('settings.conflict')),
+      snapshot.status !== 'loading' && !snapshot.writable && h('p', null, t('settings.disabled')),
+      notice && h('p', { role: notice.error ? 'alert' : 'status' }, t(notice.key, notice.params)))
+    }
+
     /**
      * Replacement for Chat's turn-process header. It reproduces the shipped
      * duration/disclosure control and appends the DeepSeek-blue reply cost
      * after the duration. Reusing this key shadows shipped UI, so re-check the
      * control after a DSH upgrade.
      */
-    function TurnProcessHeaderWithCost({ node, turnProcess, t, chatT }) {
+    function TurnProcessHeaderWithCost({ node, turnProcess, t, chatT, pricing, source }) {
       const detailId = React.useId()
       const turn = turnOf(node)
       const tail = useTurnTail(turn)
+      const snapshot = React.useSyncExternalStore(source.subscribe, source.getSnapshot)
       if (turnProcess === undefined) return null
       if (turn === undefined || turn.status !== 'closed') return null
 
@@ -414,27 +518,28 @@ window.__ModuleLoader__.load({
       const canCollapse = turnProcess.foldable && turnProcess.hasContent && !alwaysOpen(turn)
 
       const usage = tail !== null && typeof tail === 'object' ? tail.tokenUsage : undefined
-      const hasReply = tail !== null && typeof tail === 'object' && tail.closing !== null
-      const showCost = hasReply && usage !== null && typeof usage === 'object'
+      const hasReply = tail?.closing != null
+      const showCost = snapshot.status !== 'loading' && hasReply && usage !== null && typeof usage === 'object'
         && Number.isSafeInteger(usage.totalTokens) && usage.totalTokens > 0
       let costLine
       let costDetail
+      let cost
+      let currency
       let costCny = ''
       let costModel = ''
       if (showCost) {
-        const endTime = Number.isFinite(turn.end?.time) ? turn.end.time
-          : Number.isFinite(turn.start?.time) ? turn.start.time
-            : undefined
-        const breakdown = endTime === undefined
-          ? { period: 'offPeak', rows: routeRows(usage), priced: undefined, price: undefined, cost: null, reason: 'time', cacheRead: undefined, cacheWrite: 0, uncached: undefined, miss: undefined }
-          : estimate(usage, endTime)
-        costDetail = detailText(translate, usage, breakdown)
-        costCny = breakdown.cost === null ? '' : breakdown.cost.toFixed(6)
+        const breakdown = pricing.estimate(usage, turn.end?.time, snapshot.value?.overrides ?? EMPTY_OVERRIDES)
+        costDetail = detailText(translate, usage, breakdown, pricing.modelLabel)
+        if (breakdown.cost !== null) {
+          cost = String(breakdown.cost)
+          currency = breakdown.currency
+          if (currency === 'CNY') costCny = breakdown.cost.toFixed(6)
+        }
         costModel = breakdown.priced === undefined ? '' : breakdown.priced
         const tokens = NUMBER.format(usage.totalTokens)
         costLine = breakdown.cost === null
           ? translate('lineNoCost', { tokens })
-          : translate('line', { tokens, cost: formatCost(breakdown.cost) })
+          : translate('line', { tokens, cost: pricing.formatCost(breakdown.cost, currency) })
       }
 
       return h(React.Fragment, null,
@@ -471,6 +576,8 @@ window.__ModuleLoader__.load({
           'data-reply-cost': '',
           'data-reply-cost-total': String(usage.totalTokens),
           'data-reply-cost-cny': costCny,
+          'data-reply-cost-amount': cost,
+          'data-reply-cost-currency': currency,
           'data-reply-cost-model': costModel,
           title: costDetail,
         }, costLine),
@@ -479,25 +586,36 @@ window.__ModuleLoader__.load({
     }
 
     return {
-      inject: ['slots', 'locale'],
-      apply(ctx) {
+      inject: ['slots', 'locale', 'configForms'],
+      async apply(ctx) {
+        const pricing = await require.async('./client.pricing.js')
         const chatT = ctx.locale.bind('chat')
-        ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'reply-cost: dictionaries')
+        const t = ctx.locale.bind(NS)
+        const form = ctx.configForms.get(NS)
+        const source = pricingSource(ctx.configForms.describe())
+        ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'costline: dictionaries')
         ctx.effect(() => {
           const style = document.createElement('style')
-          style.dataset.plugin = '@local/reply-cost'
+          style.dataset.plugin = NS
           style.textContent = CSS
           ;(document.head || document.documentElement).append(style)
           return () => style.remove()
-        }, 'reply-cost: styles')
+        }, 'costline: styles')
+        ctx.effect(() => ctx.configForms.whileServed([NS], () => ctx.slots.inject('plugins.item', () => ctx.slots.register({
+          name: 'plugins.item',
+          id: NS,
+          order: 60,
+          label: () => t('settings.title'),
+          locale: NS,
+        }, props => props.view === 'summary' ? props.t('settings.summary')
+          : h(PricingSettings, { ...props, form, source, pricing })))), 'costline: pricing settings')
         ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
           name: 'conversation.chat.node',
           key: 'turn-process',
           priority: -1,
           locale: NS,
-        }, props => h(TurnProcessHeaderWithCost, { ...props, chatT })))
+        }, props => h(TurnProcessHeaderWithCost, { ...props, chatT, source, pricing })))
       },
-      __internals: { isPeak, estimate, formatCost, priceKey, formatDuration },
     }
   },
 })

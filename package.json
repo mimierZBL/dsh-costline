@@ -1,9 +1,15 @@
 {
-  "name": "@local/reply-cost",
-  "version": "1.0.0",
+  "name": "dsh-costline",
+  "version": "0.1.0",
   "private": true,
-  "description": "Shows each completed reply's token usage and estimated RMB cost below the reply.",
-  "type": "module",
+  "description": "Whole-turn token usage and local cost estimates in the DSH turn header.",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/schemastery": "~3.19.0"
+  },
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
@@ -13,6 +19,7 @@
   "files": [
     "index.js",
     "client.js",
+    "client.pricing.js",
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
@@ -28,7 +35,9 @@
       "inject": [
         "@deepseek-ai/dsh-client-locale",
         "@deepseek-ai/dsh-client-ui-conversation",
-        "@deepseek-ai/dsh-client-ui-chat"
+        "@deepseek-ai/dsh-client-ui-chat",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
       ]
     }
   }
