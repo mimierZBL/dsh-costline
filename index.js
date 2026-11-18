@@ -4,6 +4,7 @@ const { validateOverrides } = require('./client.pricing.js')
 // The revisioned Settings service writes this one field to the active profile patch.
 exports.Config = schema.object({
   overrides: schema.transform(schema.array(schema.any()), validateOverrides).default([]).volatile(),
+  mode: schema.union([schema.const('auto'), schema.const('footer-only')]).default('auto').volatile(),
 })
 
 exports.apply = function apply(ctx) {

@@ -35,18 +35,23 @@ generation are separate calls in separate requests.
 
 ## How it is placed
 
-The duration line is a single button rendered by Chat's `turn-process` node
-renderer, and that button has no child slot. To put the cost after the time,
-the plugin registers its own renderer under the same `conversation.chat.node`
-key (`turn-process`), replacing the shipped control with a faithful copy:
-same geometry, hover color, chevron, disclosure behavior, live-region
-announcement, and data attributes, plus the cost span.
+**Auto** (default) places the cost after the elapsed time when the DSH header
+contract is compatible. The header and footer were verified on macOS with DSH
+Web `0.2.2-rc.3`. A reported version outside that tested release uses the
+footer. When DSH doesn't report a usable version, Costline checks the render
+props when it first encounters a header and continues checking subsequent
+headers.
 
-Reusing that key shadows shipped UI: while the plugin is enabled it owns the
-completed-Turn header, and a DSH upgrade that changes the header's props,
-styles, or copy can require an update here. Disabling the plugin restores the
-shipped renderer. This is the cost of the requested position; the supported
-alternative is the `conversation.chat.turnTail` seat below the reply.
+**Footer only** leaves the original title and disclosure control in place and
+shows one cost line below the reply through DSH's `conversation.chat.turnTail`
+slot. To change placement, use **Cost placement** on the configuration page
+and save. The page shows the active placement and any reason Auto fell back.
+
+If the header contract changes or rendering fails, Costline withdraws its
+keyed renderer. On the tested build, DSH then restores its own header.
+Automatic fallback records one console warning and remains in effect for the
+current client. A refresh or restart checks compatibility again. Your saved
+placement preference remains in the profile.
 
 ## Pricing
 

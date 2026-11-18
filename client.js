@@ -59,6 +59,17 @@ window.__ModuleLoader__.load({
       'settings.conflict': '费率已在其他位置更改。重新打开页面可载入最新值。',
       'settings.invalid': '费率无效。检查编号、时段和字段：{message}',
       'settings.disabled': '当前 profile 的费率设置不可写。',
+      'mode.label': '费用显示位置',
+      'mode.auto': '自动',
+      'mode.header': '标题行',
+      'mode.footer-only': '仅页脚',
+      'mode.save': '保存显示位置',
+      'mode.saved': '显示位置已保存。',
+      'mode.actual': '当前显示：{mode}',
+      'mode.reason.version': 'DSH {version} 不在标题行的已测试范围内。',
+      'mode.reason.structure': '标题行数据结构与插件不兼容。',
+      'mode.reason.render': '标题行显示或交互异常。',
+      'mode.reason.registration': '无法注册标题行渲染器。',
     }
     const en = {
       'line': 'This task used {tokens} tok · {cost}',
@@ -102,6 +113,17 @@ window.__ModuleLoader__.load({
       'settings.conflict': 'Rates changed elsewhere. Reopen this page to load the latest values.',
       'settings.invalid': 'Invalid rate. Check the rule, period, and field shown here: {message}',
       'settings.disabled': 'Rates are read-only for this profile.',
+      'mode.label': 'Cost placement',
+      'mode.auto': 'Auto',
+      'mode.header': 'Turn header',
+      'mode.footer-only': 'Footer only',
+      'mode.save': 'Save placement',
+      'mode.saved': 'Placement saved.',
+      'mode.actual': 'Currently showing: {mode}',
+      'mode.reason.version': 'The turn header has not been tested on DSH {version}.',
+      'mode.reason.structure': 'The turn header data format is incompatible.',
+      'mode.reason.render': 'The turn header failed to render or respond.',
+      'mode.reason.registration': 'The turn header renderer could not be registered.',
     }
 
     const NUMBER = new Intl.NumberFormat('en-US')
@@ -153,6 +175,18 @@ window.__ModuleLoader__.load({
   white-space: nowrap;
   cursor: help;
 }
+.dshrc-footer .dshrc-cost {
+  display: inline-block;
+  max-width: 100%;
+  margin-left: 0;
+  font-size: var(--dsh-content-font-size, 14px);
+  vertical-align: top;
+}
+.dshrc-footer .dshrc-cost:focus-visible {
+  outline: 2px solid var(--dsw-alias-link);
+  outline-offset: -2px;
+}
+.dshrc-header-placeholder { cursor: default; }
 .dshrc-chevron {
   flex: none;
   width: 14px;
@@ -296,24 +330,13 @@ window.__ModuleLoader__.load({
       return turn?.status === 'open' || reason === 'aborted' || reason === 'interrupted' || reason === 'error'
     }
 
-    function turnOf(node) {
-      const location = node?.location
-      return location?.kind === 'turn' || location?.kind === 'step' ? location.turn : undefined
-    }
-
     /** Reuse the completed Turn's exact usage published by the Chat definition. */
-    function useTurnTail(turn) {
-      const source = React.useMemo(() => {
-        const store = turn !== undefined ? turn.data : undefined
-        return store !== null && typeof store === 'object' && typeof store.source === 'function'
-          ? store.source('turn-tail')
-          : null
-      }, [turn])
+    function useTurnTail(source) {
       const subscribe = React.useCallback(listener => (
-        source === null ? () => {} : source.subscribe(listener)
+        source === undefined ? () => {} : source.subscribe(listener)
       ), [source])
       const getSnapshot = React.useCallback(() => (
-        source === null ? undefined : source.getSnapshot()
+        source === undefined ? undefined : source.getSnapshot()
       ), [source])
       return React.useSyncExternalStore(subscribe, getSnapshot)
     }
@@ -377,6 +400,41 @@ window.__ModuleLoader__.load({
       }
     }
 
+    function displaySource(source, compat, release) {
+      const version = compat.parseVersion(release)
+      const listeners = new Set()
+      let snapshot
+      let failure
+      let warned = false
+      function refresh() {
+        const settings = source.getSnapshot()
+        const preference = settings.value?.mode === 'footer-only' ? 'footer-only' : 'auto'
+        const next = settings.status === 'loading'
+          ? { actual: 'footer-only', reason: undefined }
+          : compat.selectDisplay(preference, version, failure)
+        if (snapshot?.preference === preference && snapshot.actual === next.actual && snapshot.reason === next.reason) return
+        snapshot = { preference, version, ...next }
+        if (next.reason !== undefined && !warned) {
+          warned = true
+          console.warn('[dsh-costline] Header disabled (' + next.reason + '). Using the turn footer.')
+        }
+        for (const listener of listeners) listener()
+      }
+      refresh()
+      return {
+        getSnapshot: () => snapshot,
+        subscribe(listener) {
+          listeners.add(listener)
+          return () => { listeners.delete(listener) }
+        },
+        refresh,
+        fail(reason) {
+          failure = compat.firstFailure(failure, reason)
+          refresh()
+        },
+      }
+    }
+
     function RateFields({ row, index, pricing, t, edit, remove, locked }) {
       const input = (label, attrs) => h('label', { key: attrs.name }, label, h('input', attrs))
       const select = (name, values, label, display = value => value) => h('label', { key: name }, label,
@@ -405,17 +463,41 @@ window.__ModuleLoader__.load({
         h('button', { type: 'button', onClick: remove }, t('settings.remove', { index })))
     }
 
-    function PricingSettings({ t, form, source, pricing }) {
+    function PricingSettings({ t, form, source, pricing, display }) {
       const snapshot = React.useSyncExternalStore(source.subscribe, source.getSnapshot)
+      const placement = React.useSyncExternalStore(display.subscribe, display.getSnapshot)
       const headingId = React.useId()
       const [draft, setDraft] = React.useState(null)
       const [notice, setNotice] = React.useState(null)
       const [saving, setSaving] = React.useState(false)
+      const [modeDraft, setModeDraft] = React.useState(undefined)
+      const [modeNotice, setModeNotice] = React.useState(undefined)
       const pending = React.useRef(false)
       const accepted = snapshot.value?.overrides ?? EMPTY_OVERRIDES
       const rows = draft?.rows ?? toDraft(accepted)
       const conflicted = draft !== null && draft.revision !== snapshot.revision
       const locked = !snapshot.writable || snapshot.revision === undefined || saving
+      const modeLocked = locked || draft !== null
+
+      async function saveMode() {
+        if (modeLocked || pending.current || modeDraft === undefined || modeDraft === placement.preference) return
+        const op = modeDraft === 'auto'
+          ? { op: 'unset', path: ['mode'] }
+          : { op: 'set', path: ['mode'], value: modeDraft }
+        pending.current = true
+        setSaving(true)
+        setModeNotice(undefined)
+        try {
+          const saved = await form.mutate([op], snapshot.revision)
+          if (saved) setModeDraft(undefined)
+          setModeNotice({ key: saved ? 'mode.saved' : 'settings.failed', error: !saved })
+        } catch {
+          setModeNotice({ key: 'settings.failed', error: true })
+        } finally {
+          pending.current = false
+          setSaving(false)
+        }
+      }
 
       function edit(update) {
         setDraft(current => ({
@@ -469,6 +551,24 @@ window.__ModuleLoader__.load({
         'data-costline-settings': '', onSubmit: event => { event.preventDefault(); void submit(false) },
       },
       h('h4', { id: headingId }, t('settings.title')),
+      h('fieldset', { 'data-costline-placement': '' },
+        h('legend', null, t('mode.label')),
+        h('div', { className: 'dshrc-settings-grid' },
+          h('label', null, t('mode.label'),
+            h('select', {
+              name: 'mode', value: modeDraft ?? placement.preference, disabled: modeLocked,
+              onChange: event => { setModeDraft(event.target.value); setModeNotice(undefined) },
+            },
+            h('option', { value: 'auto' }, t('mode.auto')),
+            h('option', { value: 'footer-only' }, t('mode.footer-only'))))),
+        h('button', {
+          type: 'button', disabled: modeLocked || modeDraft === undefined || modeDraft === placement.preference,
+          onClick: () => { void saveMode() },
+        }, t('mode.save')),
+        h('p', { 'aria-live': 'polite', 'data-costline-mode': placement.actual, 'data-costline-reason': placement.reason },
+          t('mode.actual', { mode: t('mode.' + placement.actual) }),
+          placement.reason === undefined ? null : ' ' + t('mode.reason.' + placement.reason, { version: placement.version })),
+        modeNotice && h('p', { role: modeNotice.error ? 'alert' : 'status' }, t(modeNotice.key))),
       h('p', null, t('settings.help')),
       rows.map((row, position) => h(RateFields, {
         key: row.id, row, index: position + 1, pricing, t, locked,
@@ -484,72 +584,71 @@ window.__ModuleLoader__.load({
       notice && h('p', { role: notice.error ? 'alert' : 'status' }, t(notice.key, notice.params)))
     }
 
-    /**
-     * Replacement for Chat's turn-process header. It reproduces the shipped
-     * duration/disclosure control and appends the DeepSeek-blue reply cost
-     * after the duration. Reusing this key shadows shipped UI, so re-check the
-     * control after a DSH upgrade.
-     */
-    function TurnProcessHeaderWithCost({ node, turnProcess, t, chatT, pricing, source }) {
-      const detailId = React.useId()
-      const turn = turnOf(node)
-      const tail = useTurnTail(turn)
-      const snapshot = React.useSyncExternalStore(source.subscribe, source.getSnapshot)
-      if (turnProcess === undefined) return null
-      if (turn === undefined || turn.status !== 'closed') return null
-
-      const translate = typeof t === 'function' ? t : fallbackTranslate(zh)
-      const chat = typeof chatT === 'function' ? chatT : fallbackTranslate(CHAT_FALLBACK)
-      const open = !turnProcess.foldable || turnProcess.open
+    function headerCopy(turn, chat) {
       const reason = turn.end?.data?.reason?.kind
       const stopped = reason === 'aborted' || reason === 'interrupted'
-      const elapsedMs = turn.start === undefined || turn.end === undefined
-        ? undefined
-        : Math.max(1000, turn.end.time - turn.start.time)
-      const duration = elapsedMs === undefined || stopped || reason === 'error'
-        ? undefined
-        : formatDuration(elapsedMs, chat)
-      const label = stopped ? chatLabel(chat, 'message.stopped')
-        : reason === 'error' ? chatLabel(chat, 'message.turnProcess.failed')
-          : duration === undefined ? chatLabel(chat, 'message.turnProcess.worked')
-            : chatLabel(chat, 'message.turnProcess.took')
-      const announcement = stopped ? chatLabel(chat, 'message.stopped')
-        : reason === 'error' ? chatLabel(chat, 'message.turnProcess.failed')
-          : chatLabel(chat, 'message.turnProcess.worked')
-      const canCollapse = turnProcess.foldable && turnProcess.hasContent && !alwaysOpen(turn)
-
-      const usage = tail !== null && typeof tail === 'object' ? tail.tokenUsage : undefined
-      const hasReply = tail?.closing != null
-      const showCost = snapshot.status !== 'loading' && hasReply && usage !== null && typeof usage === 'object'
-        && Number.isSafeInteger(usage.totalTokens) && usage.totalTokens > 0
-      let costLine
-      let costDetail
-      let cost
-      let currency
-      let costCny = ''
-      let costModel = ''
-      if (showCost) {
-        const breakdown = pricing.estimate(usage, turn.end?.time, snapshot.value?.overrides ?? EMPTY_OVERRIDES)
-        costDetail = detailText(translate, usage, breakdown, pricing.modelLabel)
-        if (breakdown.cost !== null) {
-          cost = String(breakdown.cost)
-          currency = breakdown.currency
-          if (currency === 'CNY') costCny = breakdown.cost.toFixed(6)
-        }
-        costModel = breakdown.priced === undefined ? '' : breakdown.priced
-        const tokens = NUMBER.format(usage.totalTokens)
-        costLine = breakdown.cost === null
-          ? translate('lineNoCost', { tokens })
-          : translate('line', { tokens, cost: pricing.formatCost(breakdown.cost, currency) })
+      const elapsed = Number.isFinite(turn.start?.time) && Number.isFinite(turn.end?.time)
+        ? Math.max(1000, turn.end.time - turn.start.time) : undefined
+      const duration = elapsed === undefined || stopped || reason === 'error' ? undefined : formatDuration(elapsed, chat)
+      const status = stopped ? 'message.stopped'
+        : reason === 'error' ? 'message.turnProcess.failed' : 'message.turnProcess.worked'
+      return {
+        duration,
+        label: chatLabel(chat, duration === undefined ? status : 'message.turnProcess.took'),
+        announcement: chatLabel(chat, status),
       }
+    }
 
+    function useCost(turn, tailSource, t, pricing, source) {
+      const tail = useTurnTail(tailSource)
+      const snapshot = React.useSyncExternalStore(source.subscribe, source.getSnapshot)
+      const usage = tail?.tokenUsage
+      if (snapshot.status === 'loading' || tail?.closing == null ||
+          !Number.isSafeInteger(usage?.totalTokens) || usage.totalTokens <= 0) return undefined
+      const translate = typeof t === 'function' ? t : fallbackTranslate(zh)
+      const result = pricing.estimate(usage, turn.end?.time, snapshot.value?.overrides ?? EMPTY_OVERRIDES)
+      const tokens = NUMBER.format(usage.totalTokens)
+      return {
+        result, total: usage.totalTokens,
+        detail: detailText(translate, usage, result, pricing.modelLabel),
+        line: result.cost === null ? translate('lineNoCost', { tokens })
+          : translate('line', { tokens, cost: pricing.formatCost(result.cost, result.currency) }),
+      }
+    }
+
+    function CostText({ cost, placement, detailId }) {
+      const { result, total, detail, line } = cost
+      const priced = result.cost !== null
+      return h('span', {
+        className: 'dshrc-cost',
+        'data-reply-cost': '',
+        'data-reply-cost-placement': placement,
+        'data-reply-cost-total': String(total),
+        'data-reply-cost-cny': priced && result.currency === 'CNY' ? result.cost.toFixed(6) : '',
+        'data-reply-cost-amount': priced ? String(result.cost) : undefined,
+        'data-reply-cost-currency': priced ? result.currency : undefined,
+        'data-reply-cost-model': result.priced ?? '',
+        title: detail,
+        ...(placement === 'footer' ? { tabIndex: 0, 'aria-describedby': detailId } : {}),
+      }, line)
+    }
+
+    function CostDescription({ id, text }) {
+      return h('span', { id, className: 'dshrc-sr' }, text)
+    }
+
+    function HeaderWithCost({ node, turnProcess, inspected, t, chatT, pricing, source, display }) {
+      const detailId = React.useId()
+      const { turn, tail } = inspected
+      const cost = useCost(turn, tail, t, pricing, source)
+      if (turn.status !== 'closed') return null
+
+      const chat = typeof chatT === 'function' ? chatT : fallbackTranslate(CHAT_FALLBACK)
+      const { label, announcement, duration } = headerCopy(turn, chat)
+      const open = !turnProcess.foldable || turnProcess.open
+      const canCollapse = turnProcess.foldable && turnProcess.hasContent && !alwaysOpen(turn)
       return h(React.Fragment, null,
-        h('span', {
-          className: 'dshrc-sr',
-          role: 'status',
-          'aria-live': 'polite',
-          'aria-atomic': 'true',
-        }, announcement),
+        h('span', { className: 'dshrc-sr', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' }, announcement),
         h('button', {
           type: 'button',
           className: 'dshrc-root',
@@ -560,39 +659,136 @@ window.__ModuleLoader__.load({
           'data-turn-process-subagents': node.data.subagentCount,
           disabled: !canCollapse,
           'aria-expanded': turnProcess.hasContent ? open : undefined,
-          'aria-describedby': showCost ? detailId : undefined,
+          'aria-describedby': cost ? detailId : undefined,
           onClick: (event) => {
-            event.currentTarget.focus()
-            turnProcess.setOpen(!open)
+            try {
+              event.currentTarget.focus()
+              turnProcess.setOpen(!open)
+            } catch {
+              display.fail('render')
+            }
           },
         },
         h('span', { className: 'dshrc-label' },
           label,
-          ...(duration === undefined ? [] : duration.map((part, index) => h('span', {
-            key: index,
-            className: part.numeric ? 'dshrc-duration' : undefined,
-          }, part.text)))),
-        showCost && h('span', {
-          className: 'dshrc-cost',
-          'data-reply-cost': '',
-          'data-reply-cost-total': String(usage.totalTokens),
-          'data-reply-cost-cny': costCny,
-          'data-reply-cost-amount': cost,
-          'data-reply-cost-currency': currency,
-          'data-reply-cost-model': costModel,
-          title: costDetail,
-        }, costLine),
+          ...(duration ?? []).map((part, index) => h('span', {
+            key: index, className: part.numeric ? 'dshrc-duration' : undefined,
+          }, part.text))),
+        cost && h(CostText, { cost, placement: 'header' }),
         canCollapse && chevron()),
-        showCost && h('span', { id: detailId, className: 'dshrc-sr' }, costDetail))
+        cost && h(CostDescription, { id: detailId, text: cost.detail }))
+    }
+
+    // Keep a readable title for the render in which the guard fails. Disposing
+    // the keyed registration gives the next render back to Chat's own control.
+    function HeaderPlaceholder({ node, chatT, compat }) {
+      let text = CHAT_FALLBACK['message.turnProcess.worked']
+      try {
+        const turn = compat.turnOf(node)
+        if (turn?.status === 'open' || turn?.status === 'unknown') return null
+        const chat = typeof chatT === 'function' ? chatT : fallbackTranslate(CHAT_FALLBACK)
+        const copy = turn === undefined ? undefined : headerCopy(turn, chat)
+        text = copy === undefined ? chatLabel(chat, 'message.turnProcess.worked')
+          : copy.label + (copy.duration ?? []).map(part => part.text).join('')
+      } catch {
+        // The compatibility path must not depend on plugin costs or untrusted props.
+      }
+      return h('div', { className: 'dshrc-root dshrc-header-placeholder' }, h('span', { className: 'dshrc-label' }, text))
+    }
+
+    class CostBoundary extends React.Component {
+      state = { failed: false }
+
+      static getDerivedStateFromError() {
+        return { failed: true }
+      }
+
+      componentDidCatch() {
+        this.props.onError?.()
+      }
+
+      render() {
+        return this.state.failed ? this.props.fallback ?? null : this.props.children
+      }
+    }
+
+    function GuardedHeader(props) {
+      const { node, turnProcess, display, compat } = props
+      const actual = React.useSyncExternalStore(display.subscribe, display.getSnapshot).actual
+      const inspected = actual === 'header' ? compat.inspectHeader(node, turnProcess) : undefined
+      const incompatible = actual === 'header' && inspected === undefined
+      React.useEffect(() => {
+        if (incompatible) display.fail('structure')
+      }, [incompatible, display])
+      return inspected === undefined ? h(HeaderPlaceholder, props) : h(HeaderWithCost, { ...props, inspected })
+    }
+
+    function FooterCost({ turn, t, pricing, source, compat }) {
+      const detailId = React.useId()
+      const tail = React.useMemo(() => compat.tailSource(turn), [turn, compat])
+      const cost = useCost(turn, tail, t, pricing, source)
+      return cost ? h('div', { className: 'dshrc-footer' },
+        h(CostText, { cost, placement: 'footer', detailId }),
+        h(CostDescription, { id: detailId, text: cost.detail })) : null
+    }
+
+    function FooterSeat(props) {
+      const { display } = props
+      const actual = React.useSyncExternalStore(display.subscribe, display.getSnapshot).actual
+      return actual === 'footer-only' ? h(CostBoundary, null, h(FooterCost, props)) : null
+    }
+
+    function installHeader(ctx, display, shared) {
+      const slot = 'conversation.chat.node'
+      let dispose
+      const remove = () => {
+        dispose?.()
+        dispose = undefined
+      }
+      const sync = () => {
+        if (display.getSnapshot().actual !== 'header') {
+          remove()
+          return
+        }
+        if (dispose !== undefined) return
+        try {
+          dispose = ctx.slots.inject(slot, () => {
+            try {
+              return ctx.slots.register({ name: slot, key: 'turn-process', priority: -1, locale: NS }, props => {
+                const headerProps = { ...props, ...shared }
+                return h(CostBoundary, {
+                  fallback: h(HeaderPlaceholder, headerProps),
+                  onError: () => display.fail('render'),
+                }, h(GuardedHeader, headerProps))
+              })
+            } catch {
+              // DSH may call this later when Chat declares its slot.
+              queueMicrotask(() => display.fail('registration'))
+              return () => {}
+            }
+          })
+        } catch {
+          display.fail('registration')
+        }
+      }
+      const unsubscribe = display.subscribe(sync)
+      sync()
+      return () => { unsubscribe(); remove() }
     }
 
     return {
       inject: ['slots', 'locale', 'configForms'],
       async apply(ctx) {
-        const pricing = await require.async('./client.pricing.js')
+        const [pricing, compat] = await Promise.all([
+          require.async('./client.pricing.js'), require.async('./client.compat.js'),
+        ])
         const chatT = ctx.locale.bind('chat')
         const form = ctx.configForms.get(NS)
         const source = pricingSource(ctx.configForms.describe())
+        // Modules publishes the release of the active client composition.
+        const release = ctx.get('modules')?.manifest?.release?.version
+        const display = displaySource(source, compat, release)
+        const shared = { chatT, pricing, source, compat, display }
         ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'costline: dictionaries')
         ctx.effect(() => {
           const style = document.createElement('style')
@@ -605,13 +801,14 @@ window.__ModuleLoader__.load({
           name: 'plugins.bundle.config',
           key: NS,
           locale: NS,
-        }, props => h(PricingSettings, { ...props, form, source, pricing })))), 'costline: pricing settings')
-        ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
-          name: 'conversation.chat.node',
-          key: 'turn-process',
-          priority: -1,
+        }, props => h(PricingSettings, { ...props, form, source, pricing, display })))), 'costline: pricing settings')
+        ctx.effect(() => source.subscribe(display.refresh), 'costline: display preference')
+        ctx.effect(() => installHeader(ctx, display, shared), 'costline: header registration')
+        ctx.slots.inject('conversation.chat.turnTail', () => ctx.slots.register({
+          name: 'conversation.chat.turnTail',
+          id: NS,
           locale: NS,
-        }, props => h(TurnProcessHeaderWithCost, { ...props, chatT, source, pricing })))
+        }, props => h(FooterSeat, { ...props, ...shared })))
       },
     }
   },

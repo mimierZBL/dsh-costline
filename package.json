@@ -19,6 +19,7 @@
   "files": [
     "index.js",
     "client.js",
+    "client.compat.js",
     "client.pricing.js",
     "cordis.patch.yml",
     "locale/*.json",
