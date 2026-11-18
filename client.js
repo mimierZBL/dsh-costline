@@ -63,6 +63,7 @@ window.__ModuleLoader__.load({
       'mode.auto': '自动',
       'mode.header': '标题行',
       'mode.footer-only': '仅页脚',
+      'mode.pending': '等待设置就绪',
       'mode.save': '保存显示位置',
       'mode.saved': '显示位置已保存。',
       'mode.actual': '当前显示：{mode}',
@@ -117,6 +118,7 @@ window.__ModuleLoader__.load({
       'mode.auto': 'Auto',
       'mode.header': 'Turn header',
       'mode.footer-only': 'Footer only',
+      'mode.pending': 'Waiting for settings',
       'mode.save': 'Save placement',
       'mode.saved': 'Placement saved.',
       'mode.actual': 'Currently showing: {mode}',
@@ -409,9 +411,7 @@ window.__ModuleLoader__.load({
       function refresh() {
         const settings = source.getSnapshot()
         const preference = settings.value?.mode === 'footer-only' ? 'footer-only' : 'auto'
-        const next = settings.status === 'loading'
-          ? { actual: 'footer-only', reason: undefined }
-          : compat.selectDisplay(preference, version, failure)
+        const next = compat.selectDisplay(preference, version, failure, settings.status)
         if (snapshot?.preference === preference && snapshot.actual === next.actual && snapshot.reason === next.reason) return
         snapshot = { preference, version, ...next }
         if (next.reason !== undefined && !warned) {
@@ -603,7 +603,7 @@ window.__ModuleLoader__.load({
       const tail = useTurnTail(tailSource)
       const snapshot = React.useSyncExternalStore(source.subscribe, source.getSnapshot)
       const usage = tail?.tokenUsage
-      if (snapshot.status === 'loading' || tail?.closing == null ||
+      if (snapshot.status !== 'ready' || tail?.closing == null ||
           !Number.isSafeInteger(usage?.totalTokens) || usage.totalTokens <= 0) return undefined
       const translate = typeof t === 'function' ? t : fallbackTranslate(zh)
       const result = pricing.estimate(usage, turn.end?.time, snapshot.value?.overrides ?? EMPTY_OVERRIDES)

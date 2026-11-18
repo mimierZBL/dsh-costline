@@ -9,7 +9,8 @@
     return match[4] ? release + '-' + match[4] : release
   }
 
-  function selectDisplay(preference, release, failure) {
+  function selectDisplay(preference, release, failure, settingsStatus = 'ready') {
+    if (settingsStatus !== 'ready') return { actual: 'pending', reason: undefined }
     if (preference === 'footer-only') return { actual: 'footer-only', reason: undefined }
     const version = parseVersion(release)
     if (version !== undefined && version !== testedHeaderVersion) return { actual: 'footer-only', reason: 'version' }

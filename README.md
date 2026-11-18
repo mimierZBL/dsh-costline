@@ -35,12 +35,13 @@ generation are separate calls in separate requests.
 
 ## How it is placed
 
-**Auto** (default) places the cost after the elapsed time when the DSH header
-contract is compatible. The header and footer were verified on macOS with DSH
-Web `0.2.2-rc.3`. A reported version outside that tested release uses the
-footer. When DSH doesn't report a usable version, Costline checks the render
-props when it first encounters a header and continues checking subsequent
-headers.
+**Auto** (default) waits for settings before showing the fee. Among reported
+versions, only DSH `0.2.2-rc.3` enables header placement by default. Other
+versions automatically use the footer. When DSH doesn't report a usable
+version, Costline checks the render props when it first encounters a header
+and continues checking subsequent headers. Before release, we'll retest
+header and footer placement on the then-current DSH release and update the
+supported range.
 
 **Footer only** leaves the original title and disclosure control in place and
 shows one cost line below the reply through DSH's `conversation.chat.turnTail`

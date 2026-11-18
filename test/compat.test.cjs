@@ -14,6 +14,27 @@ test('recognizes a SemVer release, ignoring build metadata only', () => {
   }
 })
 
+test('defers both fee positions before settings are ready', () => {
+  const pending = { actual: 'pending', reason: undefined }
+  for (const status of ['loading', 'unavailable']) {
+    assert.deepEqual(selectDisplay('auto', '0.2.2-rc.3', undefined, status), pending)
+    assert.deepEqual(selectDisplay('footer-only', '0.2.2-rc.3', undefined, status), pending)
+    assert.deepEqual(selectDisplay('auto', '0.3.0', 'render', status), pending)
+  }
+})
+
+test('selects the final placement and reason as soon as settings are ready', () => {
+  for (const [preference, version, failure, actual, reason] of [
+    ['auto', '0.2.2-rc.3', undefined, 'header', undefined],
+    ['footer-only', '0.2.2-rc.3', undefined, 'footer-only', undefined],
+    ['auto', '0.3.0', undefined, 'footer-only', 'version'],
+    ['auto', '0.2.2-rc.3', 'render', 'footer-only', 'render'],
+  ]) {
+    assert.equal(selectDisplay(preference, version, failure, 'loading').actual, 'pending')
+    assert.deepEqual(selectDisplay(preference, version, failure, 'ready'), { actual, reason })
+  }
+})
+
 test('allows header mode on the tested release or when version information is absent', () => {
   assert.deepEqual(selectDisplay('auto', '0.2.2-rc.3', undefined), { actual: 'header', reason: undefined })
   assert.equal(selectDisplay('auto', '0.2.2-rc.3+custom').actual, 'header')
