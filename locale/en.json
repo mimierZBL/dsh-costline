@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Reply token cost",
+    "description": "Shows the whole turn's token usage and estimated RMB cost in the header, right after 已完成，用时 …: DeepSeek-blue text with the same size as the duration. The figure counts every model call in the turn (all Steps, tool rounds, thinking, retries), not the final reply text; child subagent and compaction calls are separate. The estimate uses the official DeepSeek V4.1 Flash and V4 Pro peak/off-peak prices; unpriced models show no cost. Hover the cost for exact buckets and the applied rate; edit PRICES in client.js for your own rates. While enabled, the plugin owns the turn header renderer."
+  }
+}

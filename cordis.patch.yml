@@ -1,0 +1,3 @@
+- insert:
+    - id: reply-cost
+      name: '@local/reply-cost'
