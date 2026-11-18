@@ -28,7 +28,7 @@
   })
   const maxRate = 1_000_000_000
 
-  // State Council nationwide holiday and make-up schedules (2025–2027).
+  // State Council nationwide holiday schedules (2025–2027).
   const holidays = [
     ['2025-01-01'], ['2025-01-28', '2025-02-04'], ['2025-04-04', '2025-04-06'],
     ['2025-05-01', '2025-05-05'], ['2025-05-31', '2025-06-02'], ['2025-10-01', '2025-10-08'],
@@ -38,11 +38,6 @@
     ['2027-01-01', '2027-01-03'], ['2027-02-05', '2027-02-13'], ['2027-04-03', '2027-04-05'],
     ['2027-05-01', '2027-05-05'], ['2027-06-09'], ['2027-09-15'], ['2027-10-01', '2027-10-07'],
   ]
-  const makeUpDays = new Set([
-    '2025-01-26', '2025-02-08', '2025-04-27', '2025-09-28', '2025-10-11',
-    '2026-01-04', '2026-02-14', '2026-02-28', '2026-05-09', '2026-09-20', '2026-10-10',
-    '2027-01-31', '2027-02-14', '2027-05-08', '2027-09-26', '2027-10-09',
-  ])
   const clock = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Shanghai', weekday: 'short', year: 'numeric', month: '2-digit',
     day: '2-digit', hour: '2-digit', hourCycle: 'h23',
@@ -51,9 +46,9 @@
   function pricePeriod(at) {
     if (!Number.isFinite(at) || Math.abs(at) > 8.64e15) return undefined
     const local = Object.fromEntries(clock.formatToParts(at).map(part => [part.type, part.value]))
+    if (local.weekday === 'Sat' || local.weekday === 'Sun') return 'offPeak'
     const day = [local.year.padStart(4, '0'), local.month, local.day].join('-')
-    if (holidays.some(([first, last = first]) => day >= first && day <= last)) return 'peak'
-    if (['Sat', 'Sun'].includes(local.weekday) && !makeUpDays.has(day)) return 'offPeak'
+    if (holidays.some(([first, last = first]) => day >= first && day <= last)) return 'offPeak'
     const hour = Number(local.hour)
     return (hour >= 9 && hour < 12) || (hour >= 14 && hour < 18) ? 'peak' : 'offPeak'
   }

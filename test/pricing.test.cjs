@@ -31,12 +31,25 @@ test('uses Shanghai weekday boundaries with an exclusive closing time', () => {
   assert.equal(pricePeriod(Infinity), undefined)
 })
 
-test('uses peak rates for announced holidays and workday hours on make-up days', () => {
-  assert.equal(pricePeriod(date('2026-10-03T01:00:00')), 'peak')
-  assert.equal(pricePeriod(date('2026-10-10T09:00:00')), 'peak')
-  assert.equal(pricePeriod(date('2026-10-10T18:00:00')), 'offPeak')
-  assert.equal(pricePeriod(date('2027-02-13T23:00:00')), 'peak')
-  assert.equal(pricePeriod(date('2025-05-05T23:00:00')), 'peak')
+test('uses off-peak rates all day on Chinese public holidays and weekends', () => {
+  for (const day of ['2025-05-05', '2026-10-01', '2026-10-03', '2026-10-10', '2027-02-05']) {
+    for (const clock of ['00:00:00', '09:00:00', '14:00:00', '23:59:59']) {
+      const timestamp = day + 'T' + clock
+      assert.equal(pricePeriod(date(timestamp)), 'offPeak', timestamp)
+    }
+  }
+  // Oct 10 is a Saturday make-up workday, Oct 12 is a normal Monday.
+  assert.equal(pricePeriod(date('2026-10-12T09:00:00')), 'peak')
+  const holiday = estimate(usage, date('2026-10-01T10:00:00'))
+  assert.equal(holiday.period, 'offPeak')
+  assert.equal(holiday.cost, 0.001655)
+})
+
+test('uses weekday hours outside the 2025–2027 holiday calendar', () => {
+  assert.equal(pricePeriod(date('2024-10-01T10:00:00')), 'peak')
+  assert.equal(pricePeriod(date('2028-10-02T14:00:00')), 'peak')
+  assert.equal(pricePeriod(date('2028-10-02T18:00:00')), 'offPeak')
+  assert.equal(pricePeriod(date('2028-10-01T10:00:00')), 'offPeak')
 })
 
 test('uses the turn end rather than guessing a missing timestamp', () => {

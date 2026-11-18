@@ -36,11 +36,10 @@ window.__ModuleLoader__.load({
       'detail.noCost.cache': '费用未知：本轮用量缺少缓存明细',
       'detail.noCost.usage': '费用未知：本轮用量不完整或各项合计不一致',
       'detail.noCost.time': '费用未知：缺少本轮时间',
-      'detail.note': '按轮次结束时刻判断高峰/空闲，法定节假日按高峰计；本地估算，仅供参考',
+      'detail.note': '按轮次结束时的北京时间计价。周一至周五 09:00–12:00、14:00–18:00 为高峰，周末和中国法定节假日全天为空闲。内置日历涵盖 2025–2027 年，其他年份按周一至周五时段计算。本地估算，仅供参考。',
       'period.peak': '高峰时段',
       'period.offPeak': '空闲时段',
-      'settings.title': 'DSH Costline 费率',
-      'settings.summary': '按提供方和模型配置每百万 token 的单价。',
+      'settings.title': '配置',
       'settings.help': '空白字段沿用内置 CNY 费率。切换币种时，请填写该币种在两个时段的全部单价。保存后也会重算已完成的轮次。',
       'settings.provider': '提供方',
       'settings.model': '模型',
@@ -80,11 +79,10 @@ window.__ModuleLoader__.load({
       'detail.noCost.cache': 'Cost unknown: cache breakdown is incomplete',
       'detail.noCost.usage': 'Cost unknown: usage is incomplete or the token counts do not add up',
       'detail.noCost.time': 'Cost unknown: the turn time is missing',
-      'detail.note': 'Peak/off-peak is judged from the turn end time, holidays count as peak; local estimate only',
+      'detail.note': 'Rates use the turn end time in Asia/Shanghai. Peak hours are 09:00–12:00 and 14:00–18:00 Monday to Friday. Weekends and Chinese public holidays are off-peak all day. The bundled calendar covers 2025–2027. Other years use the weekday schedule. Local estimate only.',
       'period.peak': 'Peak-hour',
       'period.offPeak': 'Off-peak',
-      'settings.title': 'DSH Costline rates',
-      'settings.summary': 'Set prices per million tokens by provider and model.',
+      'settings.title': 'Configuration',
       'settings.help': 'Leave an amount blank to use the built-in CNY rate. If you change the currency, enter all rates in that currency for both periods. Saving also recalculates completed turns.',
       'settings.provider': 'Provider',
       'settings.model': 'Model',
@@ -179,7 +177,8 @@ window.__ModuleLoader__.load({
   .dshrc-root, .dshrc-chevron { transition: none; }
 }
 .dshrc-settings { display: grid; gap: 12px; min-width: 0; padding: 12px 0; }
-.dshrc-settings p { margin: 0; overflow-wrap: anywhere; }
+.dshrc-settings :is(h4, p) { margin: 0; }
+.dshrc-settings p { overflow-wrap: anywhere; }
 .dshrc-settings fieldset {
   min-width: 0;
   margin: 0;
@@ -408,6 +407,7 @@ window.__ModuleLoader__.load({
 
     function PricingSettings({ t, form, source, pricing }) {
       const snapshot = React.useSyncExternalStore(source.subscribe, source.getSnapshot)
+      const headingId = React.useId()
       const [draft, setDraft] = React.useState(null)
       const [notice, setNotice] = React.useState(null)
       const [saving, setSaving] = React.useState(false)
@@ -465,9 +465,10 @@ window.__ModuleLoader__.load({
       }
 
       return h('form', {
-        className: 'dshrc-settings', noValidate: true, 'aria-busy': saving,
+        className: 'dshrc-settings', noValidate: true, 'aria-busy': saving, 'aria-labelledby': headingId,
         'data-costline-settings': '', onSubmit: event => { event.preventDefault(); void submit(false) },
       },
+      h('h4', { id: headingId }, t('settings.title')),
       h('p', null, t('settings.help')),
       rows.map((row, position) => h(RateFields, {
         key: row.id, row, index: position + 1, pricing, t, locked,
@@ -590,7 +591,6 @@ window.__ModuleLoader__.load({
       async apply(ctx) {
         const pricing = await require.async('./client.pricing.js')
         const chatT = ctx.locale.bind('chat')
-        const t = ctx.locale.bind(NS)
         const form = ctx.configForms.get(NS)
         const source = pricingSource(ctx.configForms.describe())
         ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'costline: dictionaries')
@@ -601,14 +601,11 @@ window.__ModuleLoader__.load({
           ;(document.head || document.documentElement).append(style)
           return () => style.remove()
         }, 'costline: styles')
-        ctx.effect(() => ctx.configForms.whileServed([NS], () => ctx.slots.inject('plugins.item', () => ctx.slots.register({
-          name: 'plugins.item',
-          id: NS,
-          order: 60,
-          label: () => t('settings.title'),
+        ctx.effect(() => ctx.configForms.whileServed([NS], () => ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
+          name: 'plugins.bundle.config',
+          key: NS,
           locale: NS,
-        }, props => props.view === 'summary' ? props.t('settings.summary')
-          : h(PricingSettings, { ...props, form, source, pricing })))), 'costline: pricing settings')
+        }, props => h(PricingSettings, { ...props, form, source, pricing })))), 'costline: pricing settings')
         ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
           name: 'conversation.chat.node',
           key: 'turn-process',

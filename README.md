@@ -60,22 +60,23 @@ Rates are per million tokens.
 | `deepseek-v4-pro` | peak | ¥0.30 | ¥9 | ¥27 |
 | `deepseek-v4-pro` | off-peak | ¥0.15 | ¥4.5 | ¥13.5 |
 
-Costline uses the turn's end time in Asia/Shanghai. Workday peak windows are
-09:00–12:00 and 14:00–18:00. The plugin's estimate treats announced Chinese
-holidays as peak all day and applies workday hours to weekend make-up days.
-DeepSeek's published billing policy treats weekends and public holidays as
-off-peak. Estimates can therefore differ from your invoice. The bundled
-calendar covers [2025](https://www.forestry.gov.cn/c/www/szxx/594663.jhtml),
+Costline uses the turn's end time in Asia/Shanghai. Peak hours are
+09:00–12:00 and 14:00–18:00 on non-holiday weekdays. All other hours are
+off-peak, including Chinese public holidays and weekends, even when a
+weekend is a scheduled make-up workday. The bundled calendar covers
+[2025](https://www.forestry.gov.cn/c/www/szxx/594663.jhtml),
 [2026](https://big5.www.gov.cn/gate/big5/www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm),
 and [2027](https://www.dxh.gov.cn/ZWGK/zc_zwgk/ZFWJ/TZGG/202611/t20261106_2875104.shtml).
-Outside those years Costline uses the weekday schedule.
+Outside 2025–2027, Costline applies the Monday–Friday time windows without
+holiday exceptions.
 
 An unsupported route, a mix of models or rates, or insufficient cache detail
 produces “cost unknown”. Hover over the cost line for the reason.
 
 ## Customizing
 
-Open **Plugins → Built-in plugins → DSH Costline rates**. Add an official
+Open **Plugins → Installed → DSH Costline → Configuration**
+（**插件 → 已安装 → DSH Costline → 配置**）. Add an official
 DeepSeek provider/model pair, enter prices for cache hits, cache misses, cache
 writes, or output, then save. Empty fields inherit their CNY defaults. The
 default CNY cache-write value equals the built-in cache-miss value.
