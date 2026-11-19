@@ -12,10 +12,6 @@
     "@deepseek-ai/schemastery": "~3.19.0",
     "zod": "^4.0.0"
   },
-  "peerDependenciesMeta": {
-    "@deepseek-ai/dsh-token-meter": { "optional": true },
-    "zod": { "optional": true }
-  },
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",

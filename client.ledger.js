@@ -1,11 +1,13 @@
 ;(function () {
+  const childModes = new Set(['one-shot', 'continuable', 'unknown', 'external'])
+
   function createLedgerClient({ estimate }) {
-    function priceRows(rows, overrides, missing = []) {
+    function priceRows(rows, overrides) {
       let totalTokens = 0
       let amount = 0
       let currency
       let model
-      const reasons = new Set(missing)
+      const reasons = new Set()
       for (const row of rows) {
         if (!row.usage) {
           reasons.add(row.reason)
@@ -15,10 +17,6 @@
         const price = estimate(row.usage, row.endedAt, overrides)
         if (price.cost === null) {
           reasons.add('price-' + price.reason)
-          continue
-        }
-        if (row.usage.cacheReadTokens === undefined || row.usage.cacheWriteTokens === undefined) {
-          reasons.add('price-cache')
           continue
         }
         if (currency !== undefined && price.currency !== currency) reasons.add('mixed-currency')
@@ -42,35 +40,39 @@
         const limit = sessions.length > maxChildren
         const frame = limit ? undefined : snapshot(id)
         const view = frame?.costlineLedger
-        const reasons = [...(view?.reasons ?? [])]
+        const rangeReasons = new Set(view?.reasons)
         const turns = view?.turns ?? []
         const compactions = view?.compactions ?? []
-        if (limit) reasons.push('session-limit')
-        else if (!frame) reasons.push('session-unread')
-        else if (!view) reasons.push('projection-unavailable')
-        const subtotal = priceRows(turns, overrides, reasons)
+        if (limit) rangeReasons.add('session-limit')
+        else if (!frame) rangeReasons.add('session-unread')
+        else if (!view) rangeReasons.add('projection-unavailable')
         const catalog = frame?.subagentCatalog
-        if (frame && !Array.isArray(catalog)) reasons.push('catalog-unavailable')
-        for (const { id: child, mode } of Array.isArray(catalog) ? catalog : []) {
-          if (mode === 'external' || seen.has(child)) continue
+        if (catalog !== undefined && !Array.isArray(catalog)) rangeReasons.add('catalog-unavailable')
+        for (const entry of Array.isArray(catalog) ? catalog : []) {
+          const child = entry?.id
+          if (typeof child !== 'string' || child.length === 0 || !childModes.has(entry?.mode)) {
+            rangeReasons.add('catalog-unavailable')
+            continue
+          }
+          if (entry.mode === 'external' || seen.has(child)) continue
           seen.add(child)
           queue.push(child)
         }
         sessions.push({
           id, asOfSeq: view?.asOfSeq, inheritedEventCount: view?.inheritedEventCount,
-          turns, compactions, reasons, subtotal,
+          turns, compactions, rangeReasons: [...rangeReasons], subtotal: priceRows(turns, overrides),
         })
       }
       const [main, ...children] = sessions
       const compactions = sessions.flatMap(session => session.compactions.map(row => ({ ...row, sessionId: session.id })))
       const rows = [...sessions.flatMap(session => session.turns), ...compactions]
-      const missing = sessions.flatMap(session => session.reasons)
-      const total = priceRows(rows, overrides, missing)
-      const complete = missing.length === 0 && rows.every(row => row.usage) && total.totalTokens !== null
+      const rangeReasons = [...new Set(sessions.flatMap(session => session.rangeReasons))]
+      const total = priceRows(rows, overrides)
+      if (rangeReasons.length) total.cost = null
+      const complete = rangeReasons.length === 0 && rows.every(row => row.usage) && total.totalTokens !== null
       return {
-        main, children, compactions, total,
-        compactionSubtotal: priceRows(compactions, overrides, missing.filter(reason => reason !== 'turn-in-progress')),
-        complete,
+        main, children, compactions, total, rangeReasons, complete,
+        compactionSubtotal: priceRows(compactions, overrides),
       }
     }
 

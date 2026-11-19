@@ -29,3 +29,10 @@ test('the ledger Client chunk reuses the existing browser pricing chunk', () => 
   const ledger = bundle.factory()(pricing.factory())
   assert.equal(ledger.priceRows([], []).cost.amount, 0)
 })
+
+test('the Host fold and validator are required DSH installation peers', () => {
+  for (const name of ['@deepseek-ai/dsh-token-meter', 'zod']) {
+    assert.equal(typeof manifest.peerDependencies?.[name], 'string')
+    assert.notEqual(manifest.peerDependenciesMeta?.[name]?.optional, true, name)
+  }
+})

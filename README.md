@@ -54,6 +54,12 @@ Automatic fallback records one console warning and remains in effect for the
 current client. A refresh or restart checks compatibility again. Your saved
 placement preference remains in the profile.
 
+The session ledger data layer requires DSH's
+`@deepseek-ai/dsh-token-meter/client` export (peer range
+`>=0.2.2-rc.3 <0.3.0`) and Zod 4. DSH Desktop `0.2.2-rc.3`
+provides both, with token-meter `0.2.2-rc.3` and Zod `4.6.6`.
+If the Host cannot load the ledger dependencies, it logs a diagnostic.
+
 ## Pricing
 
 The built-in CNY amounts come from the [DeepSeek API price table](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/).
