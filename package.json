@@ -49,6 +49,11 @@
     "icon.svg",
     "README.md",
     "README.zh.md",
+    "CHANGELOG.md",
+    "docs/SCREENSHOTS.md",
+    "docs/screenshots/390-light.png",
+    "docs/screenshots/390-dark.png",
+    "docs/screenshots/turn-header.png",
     "LICENSE"
   ],
   "dsh": {

@@ -1,6 +1,6 @@
 # DSH Costline 0.1.0 发布手册
 
-> **RELEASE BLOCKER**　npm 发布和市场提交前必须替换 GitHub owner 占位。先运行 `./scripts/check-release.sh`，确认其中的 `grep -R` 无匹配。命中任意一处即停止发布。
+> **RELEASE BLOCKER**　npm 发布前先替换 GitHub owner 占位并通过 `./scripts/check-release.sh --before-npm`。npm 发布后，从 registry 回填实际发布时间。部署索引及提交市场前运行完整的 `./scripts/check-release.sh`，它同时检查 owner 和每个版本的正整数 `publishTimestamp`。
 
 本文是维护者操作手册。只有你批准发布后才执行涉及 npm、GitHub 或社区提交的命令。
 
@@ -21,7 +21,7 @@ for (const path of ['package.json', 'market/index.json', 'README.md', 'README.zh
   fs.writeFileSync(path, fs.readFileSync(path, 'utf8').replaceAll(placeholder, owner))
 }
 NODE
-./scripts/check-release.sh
+./scripts/check-release.sh --before-npm
 
 npm view dsh-costline name version --json
 npm test
@@ -32,7 +32,7 @@ tar -tzf .release/dsh-costline-0.1.0.tgz
 shasum -a 256 .release/dsh-costline-0.1.0.tgz
 ```
 
-确认压缩包含 MIT、两份 README、`cordis.patch.yml`、Host/Client 入口、账本和价格模块、locale 与图标。确认没有测试、截图、索引、临时 profile、日志、私有依赖或构建脚本。完成干净 profile 安装，核对兼容矩阵、标题、页脚、总账和配置持久化。把真实 GitHub URL 和署名提交到本地 Git，再生成上述最终 tarball。
+确认包内有 MIT、两份 README、变更记录、截图清单和三张 README 相关截图，以及 bundle patch、Host/Client 入口、账本和价格模块、locale 与图标。测试、索引、临时 profile、日志和发布脚本留在包外。完成干净 profile 安装，核对兼容矩阵、标题、页脚、总账和配置。提交真实 GitHub URL 后，重新生成最终 tarball。
 
 ## 2. npm 与 GitHub Release
 
@@ -44,7 +44,7 @@ git remote add origin "https://github.com/${OWNER}/dsh-costline.git"
 git push -u origin main
 gh repo edit "${OWNER}/dsh-costline" --add-topic dsh-plugin,deepseek-harness,cost
 
-./scripts/check-release.sh && npm publish .release/dsh-costline-0.1.0.tgz --access public
+./scripts/check-release.sh --before-npm && npm publish .release/dsh-costline-0.1.0.tgz --access public
 npm view dsh-costline@0.1.0 version engines.dsh dist.integrity --json
 ```
 
@@ -65,6 +65,7 @@ record.publishTimestamp = seconds
 fs.writeFileSync(path, JSON.stringify(market, null, 2) + '\n')
 NODE
 
+./scripts/check-release.sh || exit 1
 git add market/index.json
 git commit -m 'Stamp npm publication time in the plugin index'
 git tag -a v0.1.0 -m 'DSH Costline 0.1.0'
@@ -80,7 +81,7 @@ Release 简介备选：
 
 ## 3. GitHub Pages 与自建索引
 
-在仓库 **Settings → Pages** 选择 **Deploy from a branch → main → / (root)**。部署成功后，验证索引和相对图标都直接返回 200。
+完整发布校验通过后，在仓库 **Settings → Pages** 选择 **Deploy from a branch → main → / (root)**。部署成功后，验证索引和相对图标都直接返回 200。
 
 ```sh
 export MARKET_URL="https://${OWNER}.github.io/dsh-costline/market/index.json"

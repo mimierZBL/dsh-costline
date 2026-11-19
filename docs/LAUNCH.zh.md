@@ -4,10 +4,10 @@
 
 ## 发布日检查
 
-- [ ] 确认公开仓库、署名、MIT、`dsh-plugin` topic 和 npm 包名，运行 `./scripts/check-release.sh` 清查 owner 占位。
-- [ ] 重跑 37 项单测、语法、JSON 和官方索引校验。确认 `private: false`，包内有 bundle patch 和运行文件，且无 build/lifecycle 脚本、测试或本地 profile。
+- [ ] 确认公开仓库、署名、MIT、`dsh-plugin` topic 和 npm 包名，运行 `./scripts/check-release.sh --before-npm` 清查 owner 占位。
+- [ ] 重跑单测、语法、JSON 和官方索引校验。确认 `private: false`，包内有 bundle patch、运行文件与 README 资源，且无 build/lifecycle 脚本、测试或本地 profile。
 - [ ] 用将要发布的 tarball 跑干净 profile 安装。核对已测版本、仅页脚、用量对账与浅/深主题素材。
-- [ ] 依 [发布手册](PUBLISH.zh.md) 的顺序核对 npm 读回、GitHub Release、Pages 索引与图标。
+- [ ] 依 [发布手册](PUBLISH.zh.md) 的顺序读回 npm 发布时间并运行完整发布校验，再核对 GitHub Release、Pages 索引与图标。
 - [ ] 先发一处公告，检查链接和安装指令，再发其他渠道。查阅各社区当日推广规则并选择合适版块。
 - [ ] 提交目录条目前检查是否已自动收录。记录各渠道的链接和状态，有错误时更新原帖。
 
