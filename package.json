@@ -25,6 +25,7 @@
     "client.pricing.js",
     "ledger.host.js",
     "client.ledger.js",
+    "client.ledger-view.js",
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
