@@ -1,9 +1,27 @@
 {
   "name": "dsh-costline",
   "version": "0.1.0",
-  "private": true,
-  "description": "Whole-turn token usage and local cost estimates in the DSH turn header.",
+  "private": false,
+  "license": "MIT",
+  "author": "DSH Costline contributors",
+  "homepage": "https://github.com/REPLACE_GITHUB_OWNER/dsh-costline#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/REPLACE_GITHUB_OWNER/dsh-costline.git"
+  },
+  "bugs": {
+    "url": "https://github.com/REPLACE_GITHUB_OWNER/dsh-costline/issues"
+  },
+  "keywords": ["dsh", "dsh-plugin", "deepseek-harness", "cost", "token", "usage"],
+  "description": "Whole-turn token usage, local DeepSeek cost estimates, and a session ledger for DSH.",
   "type": "commonjs",
+  "engines": {
+    "dsh": ">=0.2.2-rc.3 <0.3.0",
+    "node": ">=24.9.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "test": "node --test"
   },
@@ -29,7 +47,9 @@
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
-    "README.md"
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {

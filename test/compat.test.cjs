@@ -37,10 +37,11 @@ test('selects the final placement and reason as soon as settings are ready', () 
 
 test('allows header mode on the tested release or when version information is absent', () => {
   assert.deepEqual(selectDisplay('auto', '0.2.2-rc.3', undefined), { actual: 'header', reason: undefined })
+  assert.deepEqual(selectDisplay('auto', '0.2.2-rc.5', undefined), { actual: 'header', reason: undefined })
   assert.equal(selectDisplay('auto', '0.2.2-rc.3+custom').actual, 'header')
   assert.equal(selectDisplay('auto', undefined).actual, 'header')
   assert.equal(selectDisplay(undefined, undefined).actual, 'header')
-  for (const version of ['0.2.2-rc.2', '0.2.2', '0.2.3', '1.0.0']) {
+  for (const version of ['0.2.2-rc.2', '0.2.2-rc.4', '0.2.2', '0.2.3', '1.0.0']) {
     assert.deepEqual(selectDisplay('auto', version), { actual: 'footer-only', reason: 'version' })
   }
 })

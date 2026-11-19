@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "DSH Costline · 轮次费用",
-    "description": "在用时旁显示整轮 token 用量和预估费用。悬停查看明细，在 DSH Costline 设置页编辑 DeepSeek 官方路由的费率。"
+    "description": "显示实际记录的整轮 token 和 DeepSeek 预估费用，提供本地会话总账与可编辑费率。"
   }
 }

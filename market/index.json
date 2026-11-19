@@ -1,0 +1,35 @@
+{
+  "format": 1,
+  "title": {
+    "en": "DSH Costline",
+    "zh": "DSH Costline 插件索引"
+  },
+  "plugins": [
+    {
+      "name": "dsh-costline",
+      "title": "DSH Costline",
+      "description": {
+        "en": "Whole-turn token usage, local DeepSeek cost estimates, and a session ledger.",
+        "zh": "整轮 token 用量、本地 DeepSeek 费用估算和会话总账。"
+      },
+      "icon": "icons/cost.svg",
+      "author": "DSH Costline contributors",
+      "homepage": "https://github.com/REPLACE_GITHUB_OWNER/dsh-costline#readme",
+      "repository": {
+        "url": "https://github.com/REPLACE_GITHUB_OWNER/dsh-costline"
+      },
+      "versions": [
+        {
+          "version": "0.1.0",
+          "publishTimestamp": 0,
+          "source": {
+            "type": "npm"
+          },
+          "engines": {
+            "dsh": ">=0.2.2-rc.3 <0.3.0"
+          }
+        }
+      ]
+    }
+  ]
+}

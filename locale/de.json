@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "DSH Costline",
+    "description": "Zeigt die erfasste Token-Nutzung des gesamten Turns und die geschätzten DeepSeek-Kosten. Mit lokaler Sitzungsübersicht und einstellbaren Tarifen."
+  }
+}

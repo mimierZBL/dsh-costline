@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "DSH Costline",
-    "description": "Shows whole-turn token usage and estimated cost next to the elapsed time. Hover for usage and rates. Change official DeepSeek route rates in the DSH Costline settings page."
+    "description": "Shows recorded whole-turn token usage and estimated DeepSeek cost, with a local session ledger and editable rates."
   }
 }

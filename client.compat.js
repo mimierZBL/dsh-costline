@@ -1,5 +1,5 @@
 ;(function () {
-  const testedHeaderVersion = '0.2.2-rc.3'
+  const testedHeaderVersions = new Set(['0.2.2-rc.3', '0.2.2-rc.5'])
   const semver = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/
 
   function parseVersion(value) {
@@ -13,7 +13,7 @@
     if (settingsStatus !== 'ready') return { actual: 'pending', reason: undefined }
     if (preference === 'footer-only') return { actual: 'footer-only', reason: undefined }
     const version = parseVersion(release)
-    if (version !== undefined && version !== testedHeaderVersion) return { actual: 'footer-only', reason: 'version' }
+    if (version !== undefined && !testedHeaderVersions.has(version)) return { actual: 'footer-only', reason: 'version' }
     if (failure !== undefined) return { actual: 'footer-only', reason: failure }
     return { actual: 'header', reason: undefined }
   }

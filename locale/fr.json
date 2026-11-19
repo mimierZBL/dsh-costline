@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "DSH Costline",
+    "description": "Affiche les jetons enregistrés pour le tour complet et le coût DeepSeek estimé. Le relevé de session est local et les tarifs sont modifiables."
+  }
+}

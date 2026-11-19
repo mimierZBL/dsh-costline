@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "DSH Costline",
+    "description": "Muestra los tokens registrados durante todo el turno y el coste estimado de DeepSeek. Incluye un registro local de la sesión y tarifas editables."
+  }
+}
