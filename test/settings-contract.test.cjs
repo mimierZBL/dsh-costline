@@ -20,3 +20,12 @@ test('DSH loads the web entry and dependency-free pricing chunk under the same p
   assert.equal(chunk.chunk, 'client.pricing.js')
   assert.equal(chunk.factory().formatCost(0.6923), '≈¥0.692')
 })
+
+test('the ledger Client chunk reuses the existing browser pricing chunk', () => {
+  const bundle = loadBundle('client.ledger.js')
+  assert.equal(bundle.id, manifest.name)
+  assert.equal(bundle.chunk, 'client.ledger.js')
+  const pricing = loadBundle('client.pricing.js')
+  const ledger = bundle.factory()(pricing.factory())
+  assert.equal(ledger.priceRows([], []).cost.amount, 0)
+})

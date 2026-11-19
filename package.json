@@ -8,7 +8,13 @@
     "test": "node --test"
   },
   "peerDependencies": {
-    "@deepseek-ai/schemastery": "~3.19.0"
+    "@deepseek-ai/dsh-token-meter": ">=0.2.2-rc.3 <0.3.0",
+    "@deepseek-ai/schemastery": "~3.19.0",
+    "zod": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-token-meter": { "optional": true },
+    "zod": { "optional": true }
   },
   "exports": {
     ".": "./index.js",
@@ -21,6 +27,8 @@
     "client.js",
     "client.compat.js",
     "client.pricing.js",
+    "ledger.host.js",
+    "client.ledger.js",
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
