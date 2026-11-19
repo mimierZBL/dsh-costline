@@ -13,10 +13,10 @@
         "zh": "整轮 token 用量、本地 DeepSeek 费用估算和会话总账。"
       },
       "icon": "icons/cost.svg",
-      "author": "DSH Costline contributors",
-      "homepage": "https://github.com/REPLACE_GITHUB_OWNER/dsh-costline#readme",
+      "author": "dsh-costline contributors",
+      "homepage": "https://github.com/<github-owner>/dsh-costline#readme",
       "repository": {
-        "url": "https://github.com/REPLACE_GITHUB_OWNER/dsh-costline"
+        "url": "https://github.com/<github-owner>/dsh-costline"
       },
       "versions": [
         {

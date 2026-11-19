@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": false,
   "license": "MIT",
-  "author": "DSH Costline contributors",
-  "homepage": "https://github.com/REPLACE_GITHUB_OWNER/dsh-costline#readme",
+  "author": "dsh-costline contributors",
+  "homepage": "https://github.com/<github-owner>/dsh-costline#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/REPLACE_GITHUB_OWNER/dsh-costline.git"
+    "url": "git+https://github.com/<github-owner>/dsh-costline.git"
   },
   "bugs": {
-    "url": "https://github.com/REPLACE_GITHUB_OWNER/dsh-costline/issues"
+    "url": "https://github.com/<github-owner>/dsh-costline/issues"
   },
   "keywords": ["dsh", "dsh-plugin", "deepseek-harness", "cost", "token", "usage"],
   "description": "Whole-turn token usage, local DeepSeek cost estimates, and a session ledger for DSH.",

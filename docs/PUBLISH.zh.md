@@ -1,10 +1,12 @@
 # DSH Costline 0.1.0 发布手册
 
+> **RELEASE BLOCKER**　npm 发布和市场提交前必须替换 GitHub owner 占位。先运行 `./scripts/check-release.sh`，确认其中的 `grep -R` 无匹配。命中任意一处即停止发布。
+
 本文是维护者操作手册。只有你批准发布后才执行涉及 npm、GitHub 或社区提交的命令。
 
 ## 1. 确认公开身份与预检
 
-- 公开仓库名用 `dsh-costline`，确认 GitHub owner 和 MIT 版权署名。当前包与索引里的 `REPLACE_GITHUB_OWNER` 是明确占位。将包的 `author`、索引的 `author` 和 LICENSE 的版权行改成批准的署名。
+- 公开仓库名用 `dsh-costline`。包、索引及双语 README 的 GitHub owner 仍待填写。MIT 署名和包作者固定为 `dsh-costline contributors`。
 - `market/index.json` 的 `publishTimestamp: 0` 是有效格式的占位。只有 npm 上出现这一版本后，才将它换成 npm 的实际发布时间。Pages 的早期部署应先保持未启用。
 - `npm view` 在发布前做一次名称与版本核对。若名称被占用，先核实所有权。若 npm 账户或缓存有问题，在自己的终端恢复权限并完成 npm 的验证流程。无需分享令牌。
 
@@ -14,10 +16,12 @@ node <<'NODE'
 const fs = require('node:fs')
 const owner = process.env.OWNER
 if (!/^[a-z\d][a-z\d-]{0,38}$/i.test(owner)) throw Error('请先填写真实 GitHub owner')
-for (const path of ['package.json', 'market/index.json']) {
-  fs.writeFileSync(path, fs.readFileSync(path, 'utf8').replaceAll('REPLACE_GITHUB_OWNER', owner))
+const placeholder = '<' + 'github-owner' + '>'
+for (const path of ['package.json', 'market/index.json', 'README.md', 'README.zh.md']) {
+  fs.writeFileSync(path, fs.readFileSync(path, 'utf8').replaceAll(placeholder, owner))
 }
 NODE
+./scripts/check-release.sh
 
 npm view dsh-costline name version --json
 npm test
@@ -40,7 +44,7 @@ git remote add origin "https://github.com/${OWNER}/dsh-costline.git"
 git push -u origin main
 gh repo edit "${OWNER}/dsh-costline" --add-topic dsh-plugin,deepseek-harness,cost
 
-npm publish .release/dsh-costline-0.1.0.tgz --access public
+./scripts/check-release.sh && npm publish .release/dsh-costline-0.1.0.tgz --access public
 npm view dsh-costline@0.1.0 version engines.dsh dist.integrity --json
 ```
 
@@ -94,6 +98,8 @@ cmp market/icons/cost.svg .release/pages-icon.svg
 > DSH Costline 的单插件索引，公开列出 npm 发行版本、DSH 安装范围和源码地址。在 DSH「发现」添加 `https://OWNER.github.io/dsh-costline/market/index.json`。
 
 ## 4. 社区收录
+
+提交前在 Costline 仓库再次运行 `./scripts/check-release.sh`，并核对公开索引已写入 npm 实际发布时间。
 
 ### awesome-dsh-plugin
 

@@ -4,7 +4,7 @@
 
 ## 发布日检查
 
-- [ ] 确认公开仓库、署名、MIT、`dsh-plugin` topic 和 npm 包名。
+- [ ] 确认公开仓库、署名、MIT、`dsh-plugin` topic 和 npm 包名，运行 `./scripts/check-release.sh` 清查 owner 占位。
 - [ ] 重跑 37 项单测、语法、JSON 和官方索引校验。确认 `private: false`，包内有 bundle patch 和运行文件，且无 build/lifecycle 脚本、测试或本地 profile。
 - [ ] 用将要发布的 tarball 跑干净 profile 安装。核对已测版本、仅页脚、用量对账与浅/深主题素材。
 - [ ] 依 [发布手册](PUBLISH.zh.md) 的顺序核对 npm 读回、GitHub Release、Pages 索引与图标。
