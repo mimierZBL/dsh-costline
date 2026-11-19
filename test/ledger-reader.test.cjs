@@ -30,8 +30,10 @@ function mockSessions(fixtures) {
       const id = typeof target === 'string' ? target : target.childSessionId
       retained.push({ id, target, signal: options.signal })
       const entry = fixtures[id] ?? {}
+      const state = entry.state ?? source({ openState: entry.error ? 'error' : 'open' })
       const session = {
-        getSnapshot: () => ({ openState: entry.error ? 'error' : 'open' }),
+        getSnapshot: state.getSnapshot,
+        subscribe: state.subscribe,
         projections: {
           faceOf: key => key === 'costlineLedger' ? entry.ledger ?? source(undefined) : entry.catalog ?? source(undefined),
         },
@@ -99,6 +101,25 @@ test('close cancels a pending retain and ignores its late completion', async () 
   await tick()
   assert.equal(sessions.retained[0].signal.aborted, true)
   assert.deepEqual(sessions.released, ['main'])
+})
+
+test('a retained session reopens on its replacement projection without another retain', async () => {
+  const state = source({ openState: 'open' })
+  const projection = source(ledger())
+  const sessions = mockSessions({ main: { state, ledger: projection } })
+  const reader = createLedgerReader(sessions, 'main')
+  const main = () => reader.getSnapshot().entries.get('main')
+  reader.start()
+  await tick()
+  assert.equal(main().frame.costlineLedger.asOfSeq, 1)
+  state.set({ openState: 'loading' })
+  assert.deepEqual(main(), { status: 'loading' })
+  projection.set({ ...ledger(), asOfSeq: 2 })
+  assert.deepEqual(main(), { status: 'loading' })
+  state.set({ openState: 'open' })
+  assert.equal(main().frame.costlineLedger.asOfSeq, 2)
+  assert.equal(sessions.retained.length, 1)
+  reader.dispose()
 })
 
 test('distinguishes unknown token counts from exact zero and maps reason codes', () => {

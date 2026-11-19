@@ -27,7 +27,7 @@ test('the ledger Client chunk reuses the existing browser pricing chunk', () => 
   assert.equal(bundle.chunk, 'client.ledger.js')
   const pricing = loadBundle('client.pricing.js')
   const ledger = bundle.factory()(pricing.factory())
-  assert.equal(ledger.priceRows([], []).cost.amount, 0)
+  assert.deepEqual(Array.from(ledger.priceRows([], []).costs), [])
 })
 
 test('the Host fold and validator are required DSH installation peers', () => {

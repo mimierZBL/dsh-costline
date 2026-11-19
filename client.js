@@ -95,7 +95,10 @@ window.__ModuleLoader__.load({
       'ledger.tokens-value': '{tokens} tok',
       'ledger.unknown-tokens': '用量未知',
       'ledger.estimate': '预估费用',
+      'ledger.known-cost': '已知费用',
       'ledger.unknown-cost': '费用未知',
+      'ledger.extra-children': '另有 {count} 个已发现的子会话超过上限，尚未加载。',
+      'ledger.compaction-partial': '部分子会话未能读取，压缩摘要可能不完整。',
       'ledger.as-of': '数据截至事件 {seq}',
       'ledger.no-events': '暂无已记录的计量事件',
       'ledger.watermark-note': '各会话的数据水位分别计算。',
@@ -113,8 +116,6 @@ window.__ModuleLoader__.load({
       'ledger.reason.price-cache': '缓存明细不足。',
       'ledger.reason.price-usage': '用量明细不完整或不一致。',
       'ledger.reason.price-time': '缺少计价所需的时间。',
-      'ledger.reason.mixed-model': '此分项包含不同模型。',
-      'ledger.reason.mixed-currency': '此分项包含不同币种。',
       'ledger.reason.token-overflow': '总用量超出可精确表示的范围。',
       'ledger.reason.other': '部分计量信息不可用。',
     }
@@ -196,7 +197,10 @@ window.__ModuleLoader__.load({
       'ledger.tokens-value': '{tokens} tok',
       'ledger.unknown-tokens': 'Usage unknown',
       'ledger.estimate': 'Estimated cost',
+      'ledger.known-cost': 'Known cost',
       'ledger.unknown-cost': 'Cost unknown',
+      'ledger.extra-children': 'Additional child sessions over the limit and not loaded: {count}.',
+      'ledger.compaction-partial': 'Some child sessions could not be read. Compaction coverage may be incomplete.',
       'ledger.as-of': 'Through event {seq}',
       'ledger.no-events': 'No accounting events recorded yet',
       'ledger.watermark-note': 'Each session has its own event position.',
@@ -214,8 +218,6 @@ window.__ModuleLoader__.load({
       'ledger.reason.price-cache': 'The cache breakdown is incomplete.',
       'ledger.reason.price-usage': 'Usage details are incomplete or inconsistent.',
       'ledger.reason.price-time': 'The timestamp required for pricing is missing.',
-      'ledger.reason.mixed-model': 'This subtotal includes different models.',
-      'ledger.reason.mixed-currency': 'This subtotal includes different currencies.',
       'ledger.reason.token-overflow': 'The token total exceeds the exact arithmetic range.',
       'ledger.reason.other': 'Some accounting details are unavailable.',
     }
@@ -905,7 +907,7 @@ window.__ModuleLoader__.load({
           const [createLedger, installLedgerView] = await Promise.all([
             require.async('./client.ledger.js'), require.async('./client.ledger-view.js'),
           ])
-          installLedgerView(scope, { ledger: createLedger(pricing), pricing, source, ns: NS })
+          installLedgerView(scope, { ledger: createLedger(pricing), source, ns: NS })
         })
       },
     }

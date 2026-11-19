@@ -140,25 +140,36 @@ test('Client reprices exact tokens without concealing missing routes or cache bu
   const rate = { ...route, currency: 'USD', peak: { cacheHit: 0, cacheMiss: 0, cacheWrite: 0, output: 2 },
     offPeak: { cacheHit: 0, cacheMiss: 0, cacheWrite: 0, output: 2 } }
   const initial = priceRows([matched], [])
-  assert.notEqual(initial.cost.amount, 2)
+  assert.notEqual(initial.costs[0].amount, 2)
   assert.deepEqual(priceRows([matched], [rate]), {
-    totalTokens: 1_000_000, cost: { currency: 'USD', amount: 2 }, reasons: [],
+    totalTokens: 1_000_000, costs: [{ currency: 'USD', amount: 2 }], reasons: [],
   })
   const noRoute = { ...matched, usage: { ...matched.usage, routes: undefined } }
   const priced = priceRows([matched, noRoute], [rate])
   assert.equal(priced.totalTokens, 2_000_000)
-  assert.equal(priced.cost, null)
+  assert.deepEqual(priced.costs, [{ currency: 'USD', amount: 2 }])
   assert.deepEqual(priced.reasons, ['price-model'])
   const noCache = { ...matched, usage: { ...matched.usage, cacheReadTokens: undefined, totalTokens: 1_000_013 } }
   const cachePrice = priceRows([noCache], [rate])
   assert.equal(cachePrice.totalTokens, 1_000_013)
   assert.deepEqual(cachePrice.reasons, ['price-cache'])
-  assert.equal(cachePrice.cost, null)
+  assert.deepEqual(cachePrice.costs, [])
   const pro = { ...matched, usage: { ...matched.usage, routes: [{ ...route, model: 'deepseek-v4-pro' }] } }
   const mixed = priceRows([matched, pro], [])
   assert.equal(mixed.totalTokens, 2_000_000)
-  assert.equal(mixed.cost, null)
-  assert.deepEqual(mixed.reasons, ['mixed-model'])
+  assert.deepEqual(mixed.costs, [{ currency: 'CNY', amount: 35 }])
+  assert.deepEqual(mixed.reasons, [])
+  assert.deepEqual(priceRows([matched, pro], [rate]).costs, [
+    { currency: 'CNY', amount: 27 }, { currency: 'USD', amount: 2 },
+  ])
+  const mixedWithinRow = { ...matched, usage: { ...matched.usage, routes: [route, pro.usage.routes[0]] } }
+  assert.deepEqual(priceRows([matched, mixedWithinRow], []), {
+    totalTokens: 2_000_000, costs: [{ currency: 'CNY', amount: 8 }], reasons: ['price-mixed'],
+  })
+  const zero = { ...matched, usage: { ...matched.usage, outputTokens: 0, totalTokens: 0 } }
+  assert.deepEqual(priceRows([zero], [rate]), {
+    totalTokens: 0, costs: [{ currency: 'USD', amount: 0 }], reasons: [],
+  })
 })
 
 test('ledger prices an omitted cache write when the exact total implies zero, as the header does', () => {
@@ -167,7 +178,7 @@ test('ledger prices an omitted cache write when the exact total implies zero, as
   assert.equal(header.cacheWrite, 0)
   assert.notEqual(header.cost, null)
   assert.deepEqual(priceRows([{ usage, endedAt: when }], []), {
-    totalTokens: 50, cost: { currency: header.currency, amount: header.cost }, reasons: [],
+    totalTokens: 50, costs: [{ currency: header.currency, amount: header.cost }], reasons: [],
   })
 })
 
@@ -180,29 +191,32 @@ test('unread children or grandchildren leave known turn and compaction subtotals
   const nested = collectLedger('main', id => ({ main, child })[id], 10)
   const limited = collectLedger('main', id => ({ main, child })[id], 0)
   for (const ledger of [first, nested]) {
-    assert.ok(ledger.main.subtotal.cost.amount > 0)
-    assert.ok(ledger.compactionSubtotal.cost.amount > 0)
+    assert.ok(ledger.main.subtotal.costs[0].amount > 0)
+    assert.ok(ledger.compactionSubtotal.costs[0].amount > 0)
     assert.deepEqual(ledger.rangeReasons, ['session-unread'])
     assert.deepEqual(ledger.total.reasons, [])
-    assert.equal(ledger.total.cost, null)
+    assert.ok(ledger.total.costs[0].amount > 0)
     assert.equal(ledger.complete, false)
   }
-  assert.ok(nested.children[0].subtotal.cost.amount > 0)
+  assert.ok(nested.children[0].subtotal.costs[0].amount > 0)
   assert.equal(nested.total.totalTokens, 99)
   assert.deepEqual(limited.rangeReasons, ['session-limit'])
   assert.deepEqual(limited.main.subtotal, first.main.subtotal)
   assert.deepEqual(limited.compactionSubtotal, first.compactionSubtotal)
-  assert.equal(limited.total.cost, null)
+  assert.ok(limited.total.costs[0].amount > 0)
+  assert.deepEqual(limited.childRangeReasons, ['session-limit'])
+  assert.deepEqual(limited.compactionRangeReasons, ['session-limit'])
+  assert.equal(limited.childLimitCount, 1)
 })
 
 test('an open turn keeps covered subtotals priced while its session scope is incomplete', () => {
   const main = sessionFrame([pricedRow(50)], [pricedRow(40, 3)], ['turn-in-progress'])
   const ledger = collectLedger('main', () => main, 10)
-  assert.ok(ledger.main.subtotal.cost.amount > 0)
-  assert.ok(ledger.compactionSubtotal.cost.amount > 0)
+  assert.ok(ledger.main.subtotal.costs[0].amount > 0)
+  assert.ok(ledger.compactionSubtotal.costs[0].amount > 0)
   assert.deepEqual(ledger.rangeReasons, ['turn-in-progress'])
   assert.deepEqual(ledger.total.reasons, [])
-  assert.equal(ledger.total.cost, null)
+  assert.ok(ledger.total.costs[0].amount > 0)
   assert.equal(ledger.complete, false)
 })
 
@@ -211,32 +225,51 @@ test('an absent subagent catalog is empty, while malformed catalogs still flag i
   const none = collectLedger('main', () => main, 10)
   assert.equal(none.complete, true)
   assert.deepEqual(none.rangeReasons, [])
-  assert.ok(none.total.cost.amount > 0)
+  assert.ok(none.total.costs[0].amount > 0)
   for (const subagentCatalog of [null, {}, [null, { id: 'child', mode: 'one-shot' }]]) {
     const ledger = collectLedger('main', id => (
       id === 'main' ? { ...main, subagentCatalog } : sessionFrame([pricedRow(9)])
     ), 10)
     assert.deepEqual(ledger.rangeReasons, ['catalog-unavailable'])
-    assert.ok(ledger.main.subtotal.cost.amount > 0)
-    assert.equal(ledger.total.cost, null)
+    assert.ok(ledger.main.subtotal.costs[0].amount > 0)
+    assert.ok(ledger.total.costs[0].amount > 0)
     assert.equal(ledger.complete, false)
     if (Array.isArray(subagentCatalog)) assert.equal(ledger.children[0].subtotal.totalTokens, 9)
   }
 })
 
-test('an incomplete turn or summary only clears the subtotal it belongs to', () => {
+test('an incomplete turn or summary leaves known fees intact and supplies a reason on its own subtotal', () => {
   const incompleteTurn = { reason: 'turn-usage-unavailable' }
   const incompleteSummary = { reason: 'summary-usage-unavailable' }
   const frame = sessionFrame([pricedRow(50), incompleteTurn], [pricedRow(40)])
   const ledger = collectLedger('main', () => frame, 10)
-  assert.deepEqual(ledger.main.subtotal, { totalTokens: 50, cost: null, reasons: ['turn-usage-unavailable'] })
-  assert.ok(ledger.compactionSubtotal.cost.amount > 0)
+  assert.deepEqual(ledger.main.subtotal, {
+    totalTokens: 50, costs: [{ currency: 'CNY', amount: estimate(pricedRow(50).usage, when).cost }],
+    reasons: ['turn-usage-unavailable'],
+  })
+  assert.ok(ledger.compactionSubtotal.costs[0].amount > 0)
   assert.deepEqual(ledger.rangeReasons, [])
   assert.equal(ledger.complete, false)
   const summary = sessionFrame([pricedRow(50)], [pricedRow(40), incompleteSummary])
   const summaryLedger = collectLedger('main', () => summary, 10)
-  assert.ok(summaryLedger.main.subtotal.cost.amount > 0)
+  assert.ok(summaryLedger.main.subtotal.costs[0].amount > 0)
   assert.deepEqual(summaryLedger.compactionSubtotal, {
-    totalTokens: 40, cost: null, reasons: ['summary-usage-unavailable'],
+    totalTokens: 40, costs: [{ currency: 'CNY', amount: estimate(pricedRow(40).usage, when).cost }],
+    reasons: ['summary-usage-unavailable'],
   })
+})
+
+test('child and compaction sections expose unread, error, malformed, and unique over-limit counts', () => {
+  const ids = ['cold', 'failed', 'read', 'extra1', 'extra2', 'extra1']
+  const main = { ...sessionFrame([pricedRow(50)], [pricedRow(40)], ['turn-in-progress']),
+    subagentCatalog: [...ids.map(id => ({ id, mode: 'one-shot' })), null] }
+  const read = sessionFrame([pricedRow(9)])
+  const ledger = collectLedger('main', id => ({ main, read })[id], 3, [],
+    id => id === 'failed' ? 'error' : undefined)
+  for (const codes of [ledger.childRangeReasons, ledger.compactionRangeReasons]) {
+    assert.deepEqual(new Set(codes), new Set(['session-unread', 'session-error', 'session-limit', 'catalog-unavailable']))
+  }
+  assert.deepEqual(ledger.children.find(row => row.id === 'failed').rangeReasons, ['session-error'])
+  assert.equal(ledger.childLimitCount, 2)
+  assert.equal(ledger.total.totalTokens, 99)
 })

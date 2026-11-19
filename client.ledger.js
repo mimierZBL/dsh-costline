@@ -4,7 +4,7 @@
     'session-unread', 'session-limit', 'session-error', 'projection-unavailable', 'catalog-unavailable',
     'turn-in-progress', 'turn-usage-unavailable', 'summary-usage-unavailable', 'summary-call-unverified',
     'price-model', 'price-mixed', 'price-cache', 'price-usage', 'price-time',
-    'mixed-model', 'mixed-currency', 'token-overflow',
+    'token-overflow',
   ])
   const ledgerReasonKey = code => 'ledger.reason.' + (reasonCodes.has(code) ? code : 'other')
   const visibleTokens = (total, rows, covered) => covered || rows.some(row => row.usage) ? total : null
@@ -64,7 +64,10 @@
         const catalog = session.projections.faceOf('subagentCatalog')
         const update = () => {
           if (generation !== current) return
-          entries.set(id, { status: 'ready', frame: {
+          const { openState, removed } = session.getSnapshot()
+          if (removed || openState === 'error') entries.set(id, { status: 'error' })
+          else if (openState !== 'open') entries.set(id, { status: 'loading' })
+          else entries.set(id, { status: 'ready', frame: {
             costlineLedger: ledger.getSnapshot(), subagentCatalog: catalog.getSnapshot(),
           } })
           publish(entries)
@@ -72,6 +75,7 @@
         }
         off.push(ledger.subscribe(update))
         off.push(catalog.subscribe(update))
+        off.push(session.subscribe(update))
         update()
       } catch {
         if (generation !== current) return
@@ -128,9 +132,7 @@
   function createLedgerClient({ estimate }) {
     function priceRows(rows, overrides) {
       let totalTokens = 0
-      let amount = 0
-      let currency
-      let model
+      const amounts = new Map()
       const reasons = new Set()
       for (const row of rows) {
         if (!row.usage) {
@@ -143,20 +145,18 @@
           reasons.add('price-' + price.reason)
           continue
         }
-        if (currency !== undefined && price.currency !== currency) reasons.add('mixed-currency')
-        if (model !== undefined && price.priced !== model) reasons.add('mixed-model')
-        currency = price.currency
-        model = price.priced
-        amount += price.cost
+        amounts.set(price.currency, (amounts.get(price.currency) ?? 0) + price.cost)
       }
       if (!Number.isSafeInteger(totalTokens)) {
         totalTokens = null
         reasons.add('token-overflow')
       }
-      return { totalTokens, cost: reasons.size ? null : { currency: currency ?? 'CNY', amount }, reasons: [...reasons] }
+      const costs = [...amounts].sort(([left], [right]) => left.localeCompare(right))
+        .map(([currency, amount]) => ({ currency, amount }))
+      return { totalTokens, costs, reasons: [...reasons] }
     }
 
-    function collectLedger(mainId, snapshot, maxChildren, overrides = []) {
+    function collectLedger(mainId, snapshot, maxChildren, overrides = [], status = () => undefined) {
       const queue = [mainId]
       const seen = new Set(queue)
       const sessions = []
@@ -168,7 +168,7 @@
         const turns = view?.turns ?? []
         const compactions = view?.compactions ?? []
         if (limit) rangeReasons.add('session-limit')
-        else if (!frame) rangeReasons.add('session-unread')
+        else if (!frame) rangeReasons.add(status(id) === 'error' ? 'session-error' : 'session-unread')
         else if (!view) rangeReasons.add('projection-unavailable')
         const catalog = frame?.subagentCatalog
         if (catalog !== undefined && !Array.isArray(catalog)) rangeReasons.add('catalog-unavailable')
@@ -192,11 +192,16 @@
       const compactions = sessions.flatMap(session => session.compactions.map(row => ({ ...row, sessionId: session.id })))
       const rows = [...sessions.flatMap(session => session.turns), ...compactions]
       const rangeReasons = [...new Set(sessions.flatMap(session => session.rangeReasons))]
+      const childRangeReasons = [...new Set([
+        ...main.rangeReasons.filter(code => code === 'catalog-unavailable'),
+        ...children.flatMap(session => session.rangeReasons),
+      ])]
+      const compactionRangeReasons = childRangeReasons.filter(code => code !== 'turn-in-progress')
+      const childLimitCount = children.filter(child => child.rangeReasons.includes('session-limit')).length
       const total = priceRows(rows, overrides)
-      if (rangeReasons.length) total.cost = null
       const complete = rangeReasons.length === 0 && rows.every(row => row.usage) && total.totalTokens !== null
       return {
-        main, children, compactions, total, rangeReasons, complete,
+        main, children, compactions, total, rangeReasons, childRangeReasons, compactionRangeReasons, childLimitCount, complete,
         compactionSubtotal: priceRows(compactions, overrides),
       }
     }
