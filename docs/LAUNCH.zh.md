@@ -15,11 +15,11 @@
 
 **中文**
 
-> DSH 一轮跑完，思考、工具往返和重试一共用了多少 token？我做了 DSH Costline，把用量和预估直接放在完成用时旁。会话成本可单独查看主会话、子智能体和压缩，本地计算。MIT · `dsh plugin --profile web add dsh-costline` · REPO
+> DSH 一轮跑完，思考、工具往返和重试一共用了多少 token？我做了 DSH Costline，把用量和预估直接放在完成用时旁。会话成本可单独查看主会话、子智能体和压缩，本地计算。MIT · `dsh plugin --profile web add @mimier/dsh-costline` · REPO
 
 **English**
 
-> How many tokens did that DSH turn actually use? Costline puts recorded tokens and estimated cost next to the elapsed time. A local ledger separates the main chat, child agents and compaction. MIT. `dsh plugin --profile web add dsh-costline` · REPO
+> How many tokens did that DSH turn actually use? Costline puts recorded tokens and estimated cost next to the elapsed time. A local ledger separates the main chat, child agents and compaction. MIT. `dsh plugin --profile web add @mimier/dsh-costline` · REPO
 
 ## 即刻
 
@@ -35,11 +35,11 @@
 
 **中文标题** `做了个 DSH 插件，把整轮 token 和预估费用放到用时旁`
 
-> DSH Costline 使用模型记录的整轮用量，覆盖思考、工具往返和重试。设置可覆写 DeepSeek 费率及币种，合计按币种展示。会话总账拆为主会话、子会话和压缩摘要，数据缺项会标出来。插件运行时零外部请求。安装 `dsh plugin --profile web add dsh-costline`，兼容范围、截图与回退说明见 REPO。欢迎带 DSH 版本反馈。
+> DSH Costline 使用模型记录的整轮用量，覆盖思考、工具往返和重试。设置可覆写 DeepSeek 费率及币种，合计按币种展示。会话总账拆为主会话、子会话和压缩摘要，数据缺项会标出来。插件运行时零外部请求。安装 `dsh plugin --profile web add @mimier/dsh-costline`，兼容范围、截图与回退说明见 REPO。欢迎带 DSH 版本反馈。
 
 **English title** `DSH Costline — whole-turn token usage in the chat header`
 
-> This MIT plugin reads usage already recorded by DSH, including tool follow-ups and retries. There's an editable DeepSeek rate table and a separate ledger for sessions, child agents and compaction. It runs offline and includes a footer-only mode. Install with `dsh plugin --profile web add dsh-costline`. Version and scope details are in REPO.
+> This MIT plugin reads usage already recorded by DSH, including tool follow-ups and retries. There's an editable DeepSeek rate table and a separate ledger for sessions, child agents and compaction. It runs offline and includes a footer-only mode. Install with `dsh plugin --profile web add @mimier/dsh-costline`. Version and scope details are in REPO.
 
 ## Linux.do
 
@@ -55,7 +55,7 @@
 
 **Title** `I built a local whole-turn cost line and session ledger for DeepSeek Harness`
 
-> I wanted to reconcile long tool-heavy turns with what DSH had recorded. Costline adds tokens and an estimate beside the elapsed time, with a footer-only option. The ledger includes local child agents up to a visible cap and separately recorded compaction calls. It keeps known amounts in their original currencies. There are no runtime external requests. MIT. `dsh plugin --profile web add dsh-costline`. The screenshots use synthetic history. I'm interested in which gap labels are unclear when you try an older session. REPO
+> I wanted to reconcile long tool-heavy turns with what DSH had recorded. Costline adds tokens and an estimate beside the elapsed time, with a footer-only option. The ledger includes local child agents up to a visible cap and separately recorded compaction calls. It keeps known amounts in their original currencies. There are no runtime external requests. MIT. `dsh plugin --profile web add @mimier/dsh-costline`. The screenshots use synthetic history. I'm interested in which gap labels are unclear when you try an older session. REPO
 
 **中文备选**
 
@@ -65,7 +65,7 @@
 
 **中文标题** `用 DeepSeek Harness 跑长任务，我给它加了个会话成本按钮`
 
-> 第一张看完成用时旁的整轮 token，第二张看会话总账里的子智能体和压缩。示例截图来自临时会话，价格可自己改，缺数据会直接标出来。路径：插件 → 添加插件 → 搜 `dsh-costline`。MIT 开源，详情见 REPO。#DeepSeekHarness #开源工具
+> 第一张看完成用时旁的整轮 token，第二张看会话总账里的子智能体和压缩。示例截图来自临时会话，价格可自己改，缺数据会直接标出来。路径：插件 → 添加插件 → 搜 `@mimier/dsh-costline`。MIT 开源，详情见 REPO。#DeepSeekHarness #开源工具
 
 **English caption**
 

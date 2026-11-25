@@ -211,7 +211,7 @@
 
   if (typeof module === 'object' && module.exports) module.exports = createLedgerClient(require('./client.pricing.js'))
   else window.__ModuleLoader__.load({
-    id: 'dsh-costline', chunk: 'client.ledger.js',
+    id: '@mimier/dsh-costline', chunk: 'client.ledger.js',
     factory() { return createLedgerClient },
   })
 })()

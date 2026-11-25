@@ -59,5 +59,5 @@
 
   const compat = Object.freeze({ parseVersion, selectDisplay, firstFailure, inspectHeader, tailSource, turnOf })
   if (typeof module === 'object' && module.exports) module.exports = compat
-  else window.__ModuleLoader__.load({ id: 'dsh-costline', chunk: 'client.compat.js', factory: () => compat })
+  else window.__ModuleLoader__.load({ id: '@mimier/dsh-costline', chunk: 'client.compat.js', factory: () => compat })
 })()

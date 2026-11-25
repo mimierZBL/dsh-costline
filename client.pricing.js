@@ -181,5 +181,5 @@
     modelLabel, pricePeriod, validateOverrides, estimate, formatCost,
   })
   if (typeof module === 'object' && module.exports) module.exports = pricing
-  else window.__ModuleLoader__.load({ id: 'dsh-costline', chunk: 'client.pricing.js', factory: () => pricing })
+  else window.__ModuleLoader__.load({ id: '@mimier/dsh-costline', chunk: 'client.pricing.js', factory: () => pricing })
 })()

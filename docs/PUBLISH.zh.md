@@ -6,33 +6,24 @@
 
 ## 1. 确认公开身份与预检
 
-- 公开仓库名用 `dsh-costline`。包、索引及双语 README 的 GitHub owner 仍待填写。MIT 署名和包作者固定为 `dsh-costline contributors`。
+- 公开仓库为 `mimierZBL/dsh-costline`，npm 包名为 `@mimier/dsh-costline`。发布账号需要有 `@mimier` scope 的发布权限。MIT 署名和包作者固定为 `dsh-costline contributors`。
 - `market/index.json` 的 `publishTimestamp: 0` 是有效格式的占位。只有 npm 上出现这一版本后，才将它换成 npm 的实际发布时间。Pages 的早期部署应先保持未启用。
 - `npm view` 在发布前做一次名称与版本核对。若名称被占用，先核实所有权。若 npm 账户或缓存有问题，在自己的终端恢复权限并完成 npm 的验证流程。无需分享令牌。
 
 ```sh
-export OWNER='填已确认的 GitHub owner'
-node <<'NODE'
-const fs = require('node:fs')
-const owner = process.env.OWNER
-if (!/^[a-z\d][a-z\d-]{0,38}$/i.test(owner)) throw Error('请先填写真实 GitHub owner')
-const placeholder = '<' + 'github-owner' + '>'
-for (const path of ['package.json', 'market/index.json', 'README.md', 'README.zh.md']) {
-  fs.writeFileSync(path, fs.readFileSync(path, 'utf8').replaceAll(placeholder, owner))
-}
-NODE
+export OWNER='mimierZBL'
 ./scripts/check-release.sh --before-npm
 
-npm view dsh-costline name version --json
+npm view @mimier/dsh-costline name version --json
 npm test
 npm pack --dry-run
 mkdir -p .release
 npm pack --pack-destination .release
-tar -tzf .release/dsh-costline-0.1.0.tgz
-shasum -a 256 .release/dsh-costline-0.1.0.tgz
+tar -tzf .release/mimier-dsh-costline-0.1.0.tgz
+shasum -a 256 .release/mimier-dsh-costline-0.1.0.tgz
 ```
 
-确认包内有 MIT、两份 README、变更记录、截图清单和三张 README 相关截图，以及 bundle patch、Host/Client 入口、账本和价格模块、locale 与图标。测试、索引、临时 profile、日志和发布脚本留在包外。完成干净 profile 安装，核对兼容矩阵、标题、页脚、总账和配置。提交真实 GitHub URL 后，重新生成最终 tarball。
+确认包内有 MIT、两份 README、变更记录、截图清单和三张 README 相关截图，以及 bundle patch、Host/Client 入口、账本和价格模块、locale 与图标。测试、索引、临时 profile、日志和发布脚本留在包外。完成干净 profile 安装，核对兼容矩阵、标题、页脚、总账和配置。如修改包内文件，重新生成最终 tarball。
 
 ## 2. npm 与 GitHub Release
 
@@ -44,14 +35,14 @@ git remote add origin "https://github.com/${OWNER}/dsh-costline.git"
 git push -u origin main
 gh repo edit "${OWNER}/dsh-costline" --add-topic dsh-plugin,deepseek-harness,cost
 
-./scripts/check-release.sh --before-npm && npm publish .release/dsh-costline-0.1.0.tgz --access public
-npm view dsh-costline@0.1.0 version engines.dsh dist.integrity --json
+./scripts/check-release.sh --before-npm && npm publish .release/mimier-dsh-costline-0.1.0.tgz --access public
+npm view @mimier/dsh-costline@0.1.0 version engines.dsh dist.integrity --json
 ```
 
 读回 npm 的时间，再提交索引。量纲为 Unix 秒。
 
 ```sh
-npm view dsh-costline time --json > .release/npm-time.json
+npm view @mimier/dsh-costline time --json > .release/npm-time.json
 node <<'NODE'
 const fs = require('node:fs')
 const path = 'market/index.json'
@@ -71,13 +62,13 @@ git commit -m 'Stamp npm publication time in the plugin index'
 git tag -a v0.1.0 -m 'DSH Costline 0.1.0'
 git push origin main
 git push origin v0.1.0
-gh release create v0.1.0 .release/dsh-costline-0.1.0.tgz \
+gh release create v0.1.0 .release/mimier-dsh-costline-0.1.0.tgz \
   --verify-tag --title 'DSH Costline 0.1.0' --notes-file CHANGELOG.md
 ```
 
 Release 简介备选：
 
-> DSH Costline 0.1.0 puts recorded whole-turn usage and estimated DeepSeek cost in Chat. The local session ledger includes the main session, bounded child sessions, and compaction summaries. Known costs are shown by currency. Install via `dsh plugin --profile web add dsh-costline@0.1.0`.
+> DSH Costline 0.1.0 puts recorded whole-turn usage and estimated DeepSeek cost in Chat. The local session ledger includes the main session, bounded child sessions, and compaction summaries. Known costs are shown by currency. Install via `dsh plugin --profile web add @mimier/dsh-costline@0.1.0`.
 
 ## 3. GitHub Pages 与自建索引
 
@@ -126,7 +117,7 @@ git push -u origin add-dsh-costline
 
 PR 标题：`Add DSH Costline to usage plugins`
 
-> DSH Costline displays recorded whole-turn tokens and a DeepSeek cost estimate in Chat, with a separate local session ledger. Install with `dsh plugin --profile web add dsh-costline@0.1.0`. The bundle declares `dsh.bundle.patch`, ships JavaScript without a build step, and is MIT licensed. The README lists verified DSH builds and the footer fallback.
+> DSH Costline displays recorded whole-turn tokens and a DeepSeek cost estimate in Chat, with a separate local session ledger. Install with `dsh plugin --profile web add @mimier/dsh-costline@0.1.0`. The bundle declares `dsh.bundle.patch`, ships JavaScript without a build step, and is MIT licensed. The README lists verified DSH builds and the footer fallback.
 >
 > Source and captures: https://github.com/OWNER/dsh-costline
 
@@ -142,7 +133,7 @@ git rev-list -n 1 v0.1.0
 
 ### dshbase 与独立 DSH Plugin Store
 
-- 在 [dshbase 插件收录表单](https://github.com/ylwl1997/dshbase/issues/new?template=plugin-submission.yml) 填 `dsh-costline`、公开仓库、npm 包名与最贴近用量或会话的分类。插件能离线查看已有记录，生成新用量由 DSH 使用自己配置的模型。附 MIT、`dsh-plugin` topic 和 bundle 清单。
+- 在 [dshbase 插件收录表单](https://github.com/ylwl1997/dshbase/issues/new?template=plugin-submission.yml) 填 `DSH Costline`、公开仓库、npm 包名 `@mimier/dsh-costline` 与最贴近用量或会话的分类。插件能离线查看已有记录，生成新用量由 DSH 使用自己配置的模型。附 MIT、`dsh-plugin` topic 和 bundle 清单。
 - 独立目录 [DSH Plugin Store](https://dshpluginstore.com/submit) 接收仓库链接、一句话和兼容性备注。邮箱为可选。
 
 通用一句话：

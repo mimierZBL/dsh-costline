@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-  id: 'dsh-costline',
+  id: '@mimier/dsh-costline',
   chunk: 'client.ledger-view.js',
   factory(require) {
     const React = require('react')

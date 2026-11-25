@@ -13,7 +13,7 @@ function checker(t, owner = 'real-owner') {
   fs.copyFileSync(path.join(__dirname, '../scripts/check-release.sh'), script)
   fs.writeFileSync(path.join(root, 'README.md'), 'https://github.com/' + owner + '/dsh-costline')
   return (timestamps, ...args) => {
-    const plugins = [{ name: 'dsh-costline', versions: timestamps.map(publishTimestamp => ({ publishTimestamp })) }]
+    const plugins = [{ name: '@mimier/dsh-costline', versions: timestamps.map(publishTimestamp => ({ publishTimestamp })) }]
     fs.writeFileSync(path.join(root, 'market/index.json'), JSON.stringify({ plugins }))
     const result = spawnSync('/bin/sh', [script, ...args], { encoding: 'utf8' })
     assert.ifError(result.error)

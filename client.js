@@ -1,9 +1,12 @@
 window.__ModuleLoader__.load({
-  id: 'dsh-costline',
+  id: '@mimier/dsh-costline',
   factory(require) {
     const React = require('react')
     const h = React.createElement
-    const NS = 'dsh-costline'
+    const PACKAGE_NAME = '@mimier/dsh-costline'
+    // DSH addresses settings by the profile row ID and the bundle slot by package name.
+    const CONFIG_ID = 'dsh-costline'
+    const LOCALE_NS = 'dsh-costline'
     const EMPTY_OVERRIDES = Object.freeze([])
     // Header copy ships with Chat; these fallbacks cover a missing Chat locale
     // namespace instead of blanking the control.
@@ -482,7 +485,7 @@ window.__ModuleLoader__.load({
           const current = mirror.getSnapshot()
           if (current !== previous) {
             previous = current
-            const entry = current.view?.namespaces.find(candidate => candidate.ns === NS)
+            const entry = current.view?.namespaces.find(candidate => candidate.ns === CONFIG_ID)
             snapshot = {
               status: entry !== undefined ? 'ready' : (current.view === undefined ? 'loading' : 'unavailable'),
               value: entry?.value,
@@ -848,7 +851,7 @@ window.__ModuleLoader__.load({
         try {
           dispose = ctx.slots.inject(slot, () => {
             try {
-              return ctx.slots.register({ name: slot, key: 'turn-process', priority: -1, locale: NS }, props => {
+              return ctx.slots.register({ name: slot, key: 'turn-process', priority: -1, locale: LOCALE_NS }, props => {
                 const headerProps = { ...props, ...shared }
                 return h(CostBoundary, {
                   fallback: h(HeaderPlaceholder, headerProps),
@@ -877,37 +880,37 @@ window.__ModuleLoader__.load({
           require.async('./client.pricing.js'), require.async('./client.compat.js'),
         ])
         const chatT = ctx.locale.bind('chat')
-        const form = ctx.configForms.get(NS)
+        const form = ctx.configForms.get(CONFIG_ID)
         const source = pricingSource(ctx.configForms.describe())
         // Modules publishes the release of the active client composition.
         const release = ctx.get('modules')?.manifest?.release?.version
         const display = displaySource(source, compat, release)
         const shared = { chatT, pricing, source, compat, display }
-        ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'costline: dictionaries')
+        ctx.effect(() => ctx.locale.register(LOCALE_NS, { zh, en }), 'costline: dictionaries')
         ctx.effect(() => {
           const style = document.createElement('style')
-          style.dataset.plugin = NS
+          style.dataset.plugin = LOCALE_NS
           style.textContent = CSS
           ;(document.head || document.documentElement).append(style)
           return () => style.remove()
         }, 'costline: styles')
-        ctx.effect(() => ctx.configForms.whileServed([NS], () => ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
+        ctx.effect(() => ctx.configForms.whileServed([CONFIG_ID], () => ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
           name: 'plugins.bundle.config',
-          key: NS,
-          locale: NS,
+          key: PACKAGE_NAME,
+          locale: LOCALE_NS,
         }, props => h(PricingSettings, { ...props, form, source, pricing, display })))), 'costline: pricing settings')
         ctx.effect(() => source.subscribe(display.refresh), 'costline: display preference')
         ctx.effect(() => installHeader(ctx, display, shared), 'costline: header registration')
         ctx.slots.inject('conversation.chat.turnTail', () => ctx.slots.register({
           name: 'conversation.chat.turnTail',
-          id: NS,
-          locale: NS,
+          id: LOCALE_NS,
+          locale: LOCALE_NS,
         }, props => h(FooterSeat, { ...props, ...shared })))
         ctx.inject(['sessions'], async scope => {
           const [createLedger, installLedgerView] = await Promise.all([
             require.async('./client.ledger.js'), require.async('./client.ledger-view.js'),
           ])
-          installLedgerView(scope, { ledger: createLedger(pricing), source, ns: NS })
+          installLedgerView(scope, { ledger: createLedger(pricing), source, ns: LOCALE_NS })
         })
       },
     }

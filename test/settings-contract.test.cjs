@@ -12,12 +12,16 @@ const loadBundle = file => {
   return bundle
 }
 
-test('DSH loads the web entry and dependency-free pricing chunk under the same package ID', () => {
+test('DSH loads the web entry and every chunk under the scoped package ID', () => {
   const entry = loadBundle('client.js')
   const chunk = loadBundle('client.pricing.js')
+  assert.equal(manifest.name, '@mimier/dsh-costline')
   assert.equal(entry.id, manifest.name)
-  assert.equal(chunk.id, manifest.name)
-  assert.equal(chunk.chunk, 'client.pricing.js')
+  for (const file of ['client.pricing.js', 'client.compat.js', 'client.ledger.js', 'client.ledger-view.js']) {
+    const registration = loadBundle(file)
+    assert.equal(registration.id, manifest.name, file)
+    assert.equal(registration.chunk, file)
+  }
   assert.equal(chunk.factory().formatCost(0.6923), '≈¥0.692')
 })
 

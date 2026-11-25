@@ -6,7 +6,7 @@
   },
   "plugins": [
     {
-      "name": "dsh-costline",
+      "name": "@mimier/dsh-costline",
       "title": "DSH Costline",
       "description": {
         "en": "Whole-turn token usage, local DeepSeek cost estimates, and a session ledger.",

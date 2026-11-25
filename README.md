@@ -12,10 +12,10 @@ These are captures of the running plugin with an offline test session and exampl
 
 ## Install in 30 seconds
 
-In **Plugins → Add plugin**, enter `dsh-costline` and confirm the installation. If you already have the DSH CLI, use the profile you actually run:
+In **Plugins → Add plugin**, enter `@mimier/dsh-costline` and confirm the installation. If you already have the DSH CLI, use the profile you actually run:
 
 ```sh
-dsh plugin --profile web add dsh-costline@0.1.0
+dsh plugin --profile web add @mimier/dsh-costline@0.1.0
 ```
 
 Use `--profile desktop` for DSH Desktop. Start or reopen the profile, open a chat with recorded usage, and look for the cost beside the completed turn. **Session cost** is in the conversation toolbar.

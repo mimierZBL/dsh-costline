@@ -12,10 +12,10 @@
 
 ## 30 秒安装
 
-打开 **插件 → 添加插件**，输入 `dsh-costline` 并确认。也可用 CLI 安装到实际使用的 profile：
+打开 **插件 → 添加插件**，输入 `@mimier/dsh-costline` 并确认。也可用 CLI 安装到实际使用的 profile：
 
 ```sh
-dsh plugin --profile web add dsh-costline@0.1.0
+dsh plugin --profile web add @mimier/dsh-costline@0.1.0
 ```
 
 DSH Desktop 使用 `--profile desktop`。重新打开对应 profile，在有用量记录的会话里查看已完成轮次用时旁的费用。总账入口在会话顶部的工具区。
