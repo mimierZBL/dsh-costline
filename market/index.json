@@ -14,9 +14,9 @@
       },
       "icon": "icons/cost.svg",
       "author": "dsh-costline contributors",
-      "homepage": "https://github.com/<github-owner>/dsh-costline#readme",
+      "homepage": "https://github.com/mimierZBL/dsh-costline#readme",
       "repository": {
-        "url": "https://github.com/<github-owner>/dsh-costline"
+        "url": "https://github.com/mimierZBL/dsh-costline"
       },
       "versions": [
         {

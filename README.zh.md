@@ -70,4 +70,4 @@ Costline 面向当前任务。它用 DSH 已记录的整轮用量，直接集成
 - 让历史会话的用量缺失更容易诊断。
 - 补录安装与总账的短演示。
 
-[源码](https://github.com/<github-owner>/dsh-costline) · [变更记录](CHANGELOG.md) · [MIT 许可证](LICENSE)
+[源码](https://github.com/mimierZBL/dsh-costline) · [变更记录](CHANGELOG.md) · [MIT 许可证](LICENSE)

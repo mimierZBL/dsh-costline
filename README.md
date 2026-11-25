@@ -70,4 +70,4 @@ Costline focuses on the task in front of you: the same recorded usage DSH expose
 - Make incomplete historical usage easier to diagnose.
 - Record a short demo of a real install and the ledger.
 
-[Source](https://github.com/<github-owner>/dsh-costline) · [Changelog](CHANGELOG.md) · [MIT License](LICENSE)
+[Source](https://github.com/mimierZBL/dsh-costline) · [Changelog](CHANGELOG.md) · [MIT License](LICENSE)
